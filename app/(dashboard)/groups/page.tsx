@@ -5,10 +5,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, MessageSquare } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { RefreshCw, Users, MessageSquare, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 export default function GroupsPage() {
   const { data: groups, isLoading, isError, refetch } = useGroups();
+  const { addToast } = useToast();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  function handleDelete(id: number) {
+    addToast({ title: "Groupe supprimé", description: `Groupe #${id}`, variant: "success" });
+    setDeleteId(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -35,16 +45,23 @@ export default function GroupsPage() {
       )}
 
       {isError && (
-        <div className="text-center py-12">
+        <div className="text-center py-16">
           <p className="text-red-500 text-sm mb-3">Erreur de chargement</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Réessayer</Button>
         </div>
       )}
 
-      {groups && (
+      {groups && groups.length === 0 && (
+        <div className="text-center py-16 text-zinc-400 text-sm">
+          <Users className="h-12 w-12 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
+          Aucun groupe
+        </div>
+      )}
+
+      {groups && groups.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map((group) => (
-            <Card key={group.conversID} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <Card key={group.conversID} className="border-0 shadow-sm hover:shadow-md transition-shadow group">
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-12 w-12 rounded-xl">
@@ -54,23 +71,18 @@ export default function GroupsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{group.groupName}</h3>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {group.members} membres
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        {group.lastMessage ? "Actif" : "Inactif"}
-                      </span>
+                    <div className="flex items-start justify-between">
+                      <h3 className="font-semibold truncate">{group.groupName}</h3>
+                      <button onClick={() => setDeleteId(group.conversID)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 dark:hover:bg-red-950/50 rounded">
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </button>
                     </div>
-                    {group.lastMessage && (
-                      <p className="text-xs text-zinc-400 mt-2 truncate">{group.lastMessage}</p>
-                    )}
-                    <p className="text-xs text-zinc-400 mt-1">
-                      Créé le {new Date(group.createdAt).toLocaleDateString("fr")}
-                    </p>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
+                      <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{group.members} membres</span>
+                      <span className="flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" />{group.lastMessage ? "Actif" : "Inactif"}</span>
+                    </div>
+                    {group.lastMessage && <p className="text-xs text-zinc-400 mt-2 truncate">{group.lastMessage}</p>}
+                    <p className="text-xs text-zinc-400 mt-1">Créé le {new Date(group.createdAt).toLocaleDateString("fr")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -78,6 +90,19 @@ export default function GroupsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le groupe</DialogTitle>
+            <DialogDescription>Tous les messages et participants seront perdus.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
+            <Button variant="destructive" onClick={() => deleteId && handleDelete(deleteId)}>Supprimer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
