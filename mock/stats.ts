@@ -1,0 +1,62 @@
+import { AdminStats, ActivityEntry } from '@/types';
+
+export const mockStats: AdminStats = {
+  totalUsers: 12450,
+  onlineUsers: 3281,
+  bannedUsers: 142,
+  messagesPeriod: 45892,
+  callsPeriod: 8123,
+  statusesPeriod: 2456,
+  registrations: [
+    { date: '2026-05-20', count: 48 },
+    { date: '2026-05-21', count: 62 },
+    { date: '2026-05-22', count: 55 },
+    { date: '2026-05-23', count: 71 },
+    { date: '2026-05-24', count: 89 },
+    { date: '2026-05-25', count: 44 },
+    { date: '2026-05-26', count: 37 },
+  ],
+  activity: [
+    { date: '2026-05-20', count: 2340 },
+    { date: '2026-05-21', count: 2890 },
+    { date: '2026-05-22', count: 2670 },
+    { date: '2026-05-23', count: 3120 },
+    { date: '2026-05-24', count: 4010 },
+    { date: '2026-05-25', count: 2150 },
+    { date: '2026-05-26', count: 1890 },
+  ],
+  topCountries: [
+    { pays: 'France', users: 4201 },
+    { pays: "Côte d'Ivoire", users: 2890 },
+    { pays: 'Cameroun', users: 1540 },
+    { pays: 'Sénégal', users: 1230 },
+    { pays: 'Maroc', users: 980 },
+    { pays: 'Algérie', users: 875 },
+    { pays: 'Tunisie', users: 654 },
+    { pays: 'Belgique', users: 543 },
+    { pays: 'Canada', users: 432 },
+    { pays: 'Suisse', users: 321 },
+  ],
+  topUsers: [
+    { alanyaID: 1, nom: 'Jean Dupont', pseudo: 'jeand', avatarUrl: '', messagesSent: 1234, callsMade: 56, callsReceived: 42 },
+    { alanyaID: 2, nom: 'Marie K.', pseudo: 'mariek', avatarUrl: '', messagesSent: 987, callsMade: 34, callsReceived: 28 },
+    { alanyaID: 3, nom: 'Paul B.', pseudo: 'paulb', avatarUrl: '', messagesSent: 756, callsMade: 28, callsReceived: 19 },
+    { alanyaID: 4, nom: 'Sophie L.', pseudo: 'sophiel', avatarUrl: '', messagesSent: 654, callsMade: 22, callsReceived: 31 },
+    { alanyaID: 5, nom: 'Lucas M.', pseudo: 'lucasm', avatarUrl: '', messagesSent: 543, callsMade: 18, callsReceived: 15 },
+    { alanyaID: 6, nom: 'Emma R.', pseudo: 'emmar', avatarUrl: '', messagesSent: 432, callsMade: 15, callsReceived: 12 },
+    { alanyaID: 7, nom: 'Thomas W.', pseudo: 'thomasw', avatarUrl: '', messagesSent: 398, callsMade: 12, callsReceived: 8 },
+    { alanyaID: 8, nom: 'Camille N.', pseudo: 'camillen', avatarUrl: '', messagesSent: 312, callsMade: 10, callsReceived: 14 },
+    { alanyaID: 9, nom: 'Hugo P.', pseudo: 'hugop', avatarUrl: '', messagesSent: 287, callsMade: 8, callsReceived: 6 },
+    { alanyaID: 10, nom: 'Léa D.', pseudo: 'lead', avatarUrl: '', messagesSent: 245, callsMade: 6, callsReceived: 9 },
+  ],
+};
+
+export const mockActivityFeed: ActivityEntry[] = [
+  { id: '1', type: 'user_joined', user: 'Alex T.', detail: "a rejoint l'application", time: 'il y a 12s' },
+  { id: '2', type: 'message', user: 'Marie K.', detail: 'a envoyé un message', time: 'il y a 45s' },
+  { id: '3', type: 'call', user: 'Jean D.', detail: 'Appel terminé (12min)', time: 'il y a 2min' },
+  { id: '4', type: 'meeting', user: 'Sophie L.', detail: 'a créé une réunion', time: 'il y a 5min' },
+  { id: '5', type: 'status', user: 'Paul B.', detail: 'a publié un statut', time: 'il y a 8min' },
+  { id: '6', type: 'message', user: 'Emma R.', detail: 'a envoyé 3 photos', time: 'il y a 10min' },
+  { id: '7', type: 'user_joined', user: 'Lucas M.', detail: 'est en ligne', time: 'il y a 15min' },
+];
