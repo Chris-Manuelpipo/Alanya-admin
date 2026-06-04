@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon } from "lucide-react";
+import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon, X, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const roleLabels: Record<number, string> = { 0: "Utilisateur", 1: "Admin", 2: "Super Admin" };
 
@@ -15,6 +17,8 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = parseInt(params.id as string);
+
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const { data: user, isLoading: userLoading } = useUserDetail(id);
   const { data: activity, isLoading: activityLoading } = useUserActivity(id);
@@ -58,12 +62,17 @@ export default function UserDetailPage() {
         <div className="lg:col-span-1 space-y-6">
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6 text-center">
-              <Avatar className="h-24 w-24 mx-auto mb-4">
-                <AvatarImage src={user.avatarUrl} />
-                <AvatarFallback className="text-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                  {user.nom?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <button onClick={() => setPhotoPreview(user.avatarUrl)} className="relative group mx-auto mb-4 block">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarFallback className="text-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                    {user.nom?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ZoomIn className="h-6 w-6 text-white" />
+                </div>
+              </button>
               <h2 className="text-xl font-bold">{user.nom}</h2>
               <p className="text-sm text-zinc-500">@{user.pseudo}</p>
               <div className="mt-4 flex justify-center gap-2">
@@ -158,6 +167,16 @@ export default function UserDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Photo Preview Dialog */}
+      <Dialog open={!!photoPreview} onOpenChange={() => setPhotoPreview(null)}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-transparent shadow-none border-0">
+          <button onClick={() => setPhotoPreview(null)} className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+          <img src={photoPreview || ""} alt="Photo de profil" className="w-full h-auto max-h-[75vh] object-contain rounded-lg" />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

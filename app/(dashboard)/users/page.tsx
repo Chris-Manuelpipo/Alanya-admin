@@ -145,39 +145,88 @@ export default function UsersPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 p-4 rounded-lg border bg-white dark:bg-zinc-900 animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Statut</label>
-            <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+        <div className="rounded-lg border bg-white dark:bg-zinc-900 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
+            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
+            <button
+              onClick={() => { setStatus(""); setIdPays(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
+              className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
+            >
+              Réinitialiser
+            </button>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Pays</label>
-            <select value={idPays} onChange={(e) => { setIdPays(e.target.value); setPage(1); }} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">Tous</option>
-              <option value="1">France</option>
-              <option value="2">Côte d&apos;Ivoire</option>
-              <option value="3">Cameroun</option>
-              <option value="4">Sénégal</option>
-              <option value="5">Maroc</option>
-            </select>
+          <div className="flex flex-wrap gap-4 p-4">
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Statut</label>
+              <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Pays</label>
+              <select value={idPays} onChange={(e) => { setIdPays(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <option value="">Tous</option>
+                <option value="1">France</option>
+                <option value="2">Côte d&apos;Ivoire</option>
+                <option value="3">Cameroun</option>
+                <option value="4">Sénégal</option>
+                <option value="5">Maroc</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Trier par</label>
+              <select value={sort} onChange={(e) => setSort(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <option value="created_at">Date d&apos;inscription</option>
+                <option value="nom">Nom</option>
+                <option value="last_seen">Dernière activité</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Ordre</label>
+              <select value={order} onChange={(e) => setOrder(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <option value="desc">Décroissant</option>
+                <option value="asc">Croissant</option>
+              </select>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Trier par</label>
-            <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="created_at">Date d&apos;inscription</option>
-              <option value="nom">Nom</option>
-              <option value="last_seen">Dernière activité</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-500">Ordre</label>
-            <select value={order} onChange={(e) => setOrder(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="desc">Décroissant</option>
-              <option value="asc">Croissant</option>
-            </select>
-          </div>
+        </div>
+      )}
+
+      {/* Active Filter Badges */}
+      {(status || idPays || sort !== "created_at" || order !== "desc") && !showFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          {status && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              {statusOptions.find(o => o.value === status)?.label}
+              <button onClick={() => { setStatus(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {idPays && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              {idPays === "1" ? "France" : idPays === "2" ? "Côte d'Ivoire" : idPays === "3" ? "Cameroun" : idPays === "4" ? "Sénégal" : idPays === "5" ? "Maroc" : idPays}
+              <button onClick={() => { setIdPays(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {sort !== "created_at" && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              Tri: {sort === "nom" ? "Nom" : "Activité"}
+              <button onClick={() => { setSort("created_at"); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {order !== "desc" && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              Croissant
+              <button onClick={() => { setOrder("desc"); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
         </div>
       )}
 
