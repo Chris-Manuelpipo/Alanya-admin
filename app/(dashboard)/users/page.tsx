@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Search,
   ChevronLeft,
@@ -208,6 +209,7 @@ export default function UsersPage() {
                 </th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">ID</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Nom</th>
+                <th className="w-12 px-3 py-3"></th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Email</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Téléphone</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Rôle</th>
@@ -220,7 +222,7 @@ export default function UsersPage() {
               {isLoading && [...Array(8)].map((_, i) => (
                 <tr key={i}>
                   <td className="px-2 py-3"><Skeleton className="h-5 w-5" /></td>
-                  {[...Array(8)].map((_, j) => (
+                  {[...Array(9)].map((_, j) => (
                     <td key={j} className="px-3 py-3"><Skeleton className="h-5 w-full" /></td>
                   ))}
                 </tr>
@@ -236,6 +238,14 @@ export default function UsersPage() {
                       {user.nom}
                     </button>
                     <div className="text-xs text-zinc-400">@{user.pseudo}</div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.avatarUrl} />
+                      <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                        {user.nom?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
                   </td>
                   <td className="px-3 py-3 text-zinc-600">{user.email}</td>
                   <td className="px-3 py-3 text-zinc-600 font-mono text-xs">{user.alanyaPhone}</td>
@@ -264,7 +274,7 @@ export default function UsersPage() {
                 </tr>
               ))}
               {!isLoading && data?.items.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-16 text-center">
+                <tr><td colSpan={10} className="px-4 py-16 text-center">
                   <div className="text-zinc-300 dark:text-zinc-600 mb-2">
                     <Search className="h-10 w-10 mx-auto" />
                   </div>

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
+  BarChart3,
   Users,
   UsersRound,
   Video,
@@ -22,6 +23,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/users", label: "Users", icon: Users },
   { href: "/groups", label: "Groups", icon: UsersRound },
   { href: "/meetings", label: "Meetings", icon: Video },

@@ -9,6 +9,7 @@ import { TopCountries } from "@/components/dashboard/TopCountries";
 import { TopUsersTable } from "@/components/dashboard/TopUsersTable";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { useStats, useActivityFeed } from "@/hooks/useAdmin";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -36,6 +37,14 @@ export default function DashboardPage() {
 
   const { data: stats, isLoading, isError, refetch } = useStats(from, to);
   const { data: activity, isLoading: activityLoading } = useActivityFeed();
+  const { data: analytics } = useAnalytics(from, to);
+
+  // Tendances réelles (période courante vs période précédente)
+  const trend = (current?: number, previous?: number) => {
+    if (current == null || !previous) return undefined;
+    const pct = Math.round(((current - previous) / previous) * 100);
+    return { value: pct, positive: pct >= 0 };
+  };
 
   const userBreakdown = useMemo(() => {
     if (!stats) return [];
@@ -94,11 +103,11 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title="Utilisateurs" value={stats?.totalUsers ?? 0} icon={Users} color="#6366f1" subtitle="total" />
-        <StatCard title="En ligne" value={stats?.onlineUsers ?? 0} icon={Activity} color="#22c55e" subtitle="maintenant" trend={stats ? { value: 12, positive: true } : undefined} />
+        <StatCard title="En ligne" value={stats?.onlineUsers ?? 0} icon={Activity} color="#22c55e" subtitle="maintenant" />
         <StatCard title="Bannis" value={stats?.bannedUsers ?? 0} icon={Ban} color="#ef4444" subtitle="total" />
-        <StatCard title="Messages" value={stats?.messagesPeriod ?? 0} icon={MessageSquare} color="#3b82f6" subtitle="cette période" />
-        <StatCard title="Appels" value={stats?.callsPeriod ?? 0} icon={Phone} color="#8b5cf6" subtitle="cette période" />
-        <StatCard title="Statuts" value={stats?.statusesPeriod ?? 0} icon={Smile} color="#f59e0b" subtitle="cette période" />
+        <StatCard title="Messages" value={stats?.messagesPeriod ?? 0} icon={MessageSquare} color="#3b82f6" subtitle="cette période" trend={trend(stats?.messagesPeriod, analytics?.comparison.messages)} />
+        <StatCard title="Appels" value={stats?.callsPeriod ?? 0} icon={Phone} color="#8b5cf6" subtitle="cette période" trend={trend(stats?.callsPeriod, analytics?.comparison.calls)} />
+        <StatCard title="Statuts" value={stats?.statusesPeriod ?? 0} icon={Smile} color="#f59e0b" subtitle="cette période" trend={trend(stats?.statusesPeriod, analytics?.comparison.statuses)} />
       </div>
 
       {/* Loading / Error */}

@@ -1,5 +1,6 @@
-import { AdminStats, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, Meeting, MediaItem } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, Meeting, MediaItem } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
+import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
 import { mockGroups } from '@/mock/groups';
 import { mockMeetings } from '@/mock/meetings';
@@ -46,7 +47,19 @@ export async function fetchStats(from?: string, to?: string): Promise<AdminStats
 }
 
 export async function fetchActivityFeed(): Promise<ActivityEntry[]> {
-  return mockActivityFeed;
+  if (USE_MOCK) return mockActivityFeed;
+  const res = await api.get('/admin/activity');
+  return res.data as ActivityEntry[];
+}
+
+// ── Analytics avancées ──
+
+export async function fetchAnalytics(from?: string, to?: string): Promise<Analytics> {
+  if (USE_MOCK) return mockAnalytics;
+  // Les clés backend sont déjà en camelCase → le transform snake→camel
+  // (lib/api.ts) les laisse intactes, on peut retourner res.data tel quel.
+  const res = await api.get('/admin/analytics', { params: { from, to } });
+  return res.data as Analytics;
 }
 
 // ── Users ──

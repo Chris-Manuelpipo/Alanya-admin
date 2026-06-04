@@ -76,6 +76,75 @@ export interface ActivityEntry {
   time: string;
 }
 
+// ── Analytics avancées (GET /api/admin/analytics) ──
+
+export interface LabeledCount {
+  type: number;
+  label: string;
+  count: number;
+}
+
+export interface CallStats {
+  total: number;
+  audio: number;
+  video: number;
+  answered: number;
+  missed: number;
+  rejected: number;
+  avgDuration: number;
+  totalDuration: number;
+  successRate: number;
+}
+
+export interface StoryStats {
+  total: number;
+  totalViews: number;
+  totalLikes: number;
+  avgViews: number;
+  engagementRate: number;
+  byType: LabeledCount[];
+}
+
+export interface MeetingStats {
+  total: number;
+  avgDuration: number;
+  accepted: number;
+  declined: number;
+  invited: number;
+  attendanceRate: number;
+  noShowRate: number;
+}
+
+export interface UserAnalytics {
+  byRole: { role: number; label: string; count: number }[];
+  newUsers: number;
+  bannedUsers: number;
+  totalUsers: number;
+}
+
+export interface ConversationStats {
+  total: number;
+  groups: number;
+  oneToOne: number;
+  avgGroupSize: number;
+}
+
+export interface Analytics {
+  messagesByType: LabeledCount[];
+  messagesByDay: { date: string; count: number }[];
+  calls: CallStats;
+  callsByDay: { date: string; audio: number; video: number }[];
+  stories: StoryStats;
+  meetings: MeetingStats;
+  users: UserAnalytics;
+  devices: { os: string; count: number }[];
+  conversations: ConversationStats;
+  heatmap: { dow: number; hour: number; count: number }[];
+  comparison: { messages: number; calls: number; statuses: number; registrations: number };
+  period: { from: string; to: string };
+  previousPeriod: { from: string; to: string };
+}
+
 export interface Group {
   conversID: number;
   groupName: string;
