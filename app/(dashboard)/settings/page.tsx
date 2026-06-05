@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
-import { Save, Globe, Bell, Shield, Palette, Loader2 } from "lucide-react";
+import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { Save, Globe, Bell, Shield, Palette, Loader2, Lock } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
   const updateMutation = useUpdateSettings();
   const { addToast } = useToast();
+  const isSuper = useIsSuperAdmin();
 
   const [appName, setAppName] = useState("");
   const [apiUrl, setApiUrl] = useState("");
@@ -57,6 +59,13 @@ export default function SettingsPage() {
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Configuration de l&apos;application</p>
       </div>
 
+      {!isSuper && !isLoading && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-sm text-amber-700 dark:text-amber-300">
+          <Lock className="h-4 w-4 shrink-0" />
+          Lecture seule — la modification des paramètres est réservée au super-admin.
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
@@ -74,13 +83,13 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="appName">Nom de l&apos;application</Label>
-              <Input id="appName" value={appName} onChange={(e) => setAppName(e.target.value)} />
+              <Input id="appName" value={appName} onChange={(e) => setAppName(e.target.value)} disabled={!isSuper} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="apiUrl">URL de l&apos;API</Label>
-              <Input id="apiUrl" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
+              <Input id="apiUrl" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} disabled={!isSuper} />
             </div>
-            <Button onClick={handleSave} disabled={!dirty || updateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button onClick={handleSave} disabled={!isSuper || !dirty || updateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Enregistrer
             </Button>
@@ -133,8 +142,8 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleMaintenance}
-                disabled={updateMutation.isPending}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${maintenance ? "bg-indigo-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                disabled={!isSuper || updateMutation.isPending}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${maintenance ? "bg-indigo-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${maintenance ? "translate-x-6" : "translate-x-1"}`} />
               </button>
