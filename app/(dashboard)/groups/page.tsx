@@ -6,10 +6,30 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { RefreshCw, Users, MessageSquare, Trash2, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { RefreshCw, Users, MessageSquare, Trash2, ChevronRight, SlidersHorizontal, Search } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { FilterBar, FilterDef } from "@/components/dashboard/FilterBar";
+
+const GROUP_FILTERS: FilterDef[] = [
+  { key: "status", label: "Statut", options: [
+    { value: "", label: "Tous" },
+    { value: "active", label: "Actifs" },
+    { value: "inactive", label: "Inactifs" },
+  ] },
+  { key: "sort", label: "Trier par", options: [
+    { value: "createdAt", label: "Date de création" },
+    { value: "groupName", label: "Nom" },
+    { value: "members", label: "Membres" },
+    { value: "lastMessageAt", label: "Dernier message" },
+  ] },
+  { key: "order", label: "Ordre", options: [
+    { value: "desc", label: "Décroissant" },
+    { value: "asc", label: "Croissant" },
+  ] },
+];
+const GROUP_DEFAULTS = { status: "", sort: "createdAt", order: "desc" };
 
 export default function GroupsPage() {
   const { data: groups, isLoading, isError, refetch } = useGroups();
@@ -17,6 +37,30 @@ export default function GroupsPage() {
   const router = useRouter();
   const deleteGroup = useDeleteGroup();
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>(GROUP_DEFAULTS);
+
+  const filtered = useMemo(() => {
+    if (!groups) return [];
+    const q = search.trim().toLowerCase();
+    const list = groups.filter((g) => {
+      if (q && !g.groupName?.toLowerCase().includes(q)) return false;
+      if (values.status === "active" && !g.lastMessage) return false;
+      if (values.status === "inactive" && g.lastMessage) return false;
+      return true;
+    });
+    const dir = values.order === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      switch (values.sort) {
+        case "groupName": return dir * (a.groupName || "").localeCompare(b.groupName || "");
+        case "members": return dir * ((a.members || 0) - (b.members || 0));
+        case "lastMessageAt": return dir * (new Date(a.lastMessageAt || 0).getTime() - new Date(b.lastMessageAt || 0).getTime());
+        case "createdAt":
+        default: return dir * (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      }
+    });
+  }, [groups, search, values]);
 
   function handleDelete(id: number) {
     deleteGroup.mutate(id, {
@@ -37,13 +81,30 @@ export default function GroupsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Groupes</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Gestion des groupes de discussion ({groups?.length ?? 0} groupes)
+            Gestion des groupes de discussion ({filtered.length}{groups ? ` / ${groups.length}` : ""} groupes)
           </p>
         </div>
-        <Button variant="outline" size="icon" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} className={showFilters ? "bg-indigo-50 dark:bg-indigo-950" : ""}>
+            <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtres
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      <FilterBar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Rechercher un groupe..."
+        showFilters={showFilters}
+        filters={GROUP_FILTERS}
+        values={values}
+        defaults={GROUP_DEFAULTS}
+        onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
+        onReset={() => setValues(GROUP_DEFAULTS)}
+      />
 
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -69,9 +130,16 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {groups && groups.length > 0 && (
+      {groups && groups.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-16 text-zinc-400 text-sm">
+          <Search className="h-10 w-10 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+          Aucun groupe trouvé
+        </div>
+      )}
+
+      {filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((group) => (
+          {filtered.map((group) => (
             <Card
               key={group.conversID}
               onClick={() => router.push(`/groups/${group.conversID}`)}
