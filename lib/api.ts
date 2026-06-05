@@ -34,12 +34,61 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Refresh du token d'accès en « single-flight » : si plusieurs requêtes
+// échouent en 401 simultanément, un seul appel /auth/refresh est émis.
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  const refresh = typeof window !== 'undefined' ? localStorage.getItem('admin_refresh') : null;
+  if (!refresh) throw new Error('No refresh token');
+  // axios « nu » (sans intercepteurs) → évite la récursion et l'envoi du token expiré
+  const res = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken: refresh });
+  const { accessToken, refreshToken } = res.data;
+  localStorage.setItem('admin_token', accessToken);
+  if (refreshToken) localStorage.setItem('admin_refresh', refreshToken);
+  return accessToken;
+}
+
+function forceLogout() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_refresh');
+  localStorage.removeItem('admin_user');
+  window.location.href = '/login';
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-      window.location.href = '/login';
+  async (err) => {
+    const original = err.config;
+    const status = err.response?.status;
+    const code = err.response?.data?.code;
+
+    // Token d'accès expiré → tenter un refresh, une seule fois par requête
+    if (
+      status === 401 &&
+      code === 'TOKEN_EXPIRED' &&
+      original &&
+      !original._retry &&
+      typeof window !== 'undefined' &&
+      localStorage.getItem('admin_refresh')
+    ) {
+      original._retry = true;
+      try {
+        refreshPromise = refreshPromise ?? refreshAccessToken().finally(() => { refreshPromise = null; });
+        const newToken = await refreshPromise;
+        original.headers = original.headers ?? {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      } catch {
+        forceLogout();
+        return Promise.reject(err);
+      }
+    }
+
+    // 401 non récupérable (pas de refresh, refresh échoué, token invalide)
+    if (status === 401 && typeof window !== 'undefined') {
+      forceLogout();
     }
     return Promise.reject(err);
   },
