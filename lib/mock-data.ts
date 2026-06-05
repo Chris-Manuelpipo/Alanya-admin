@@ -1,4 +1,4 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
@@ -167,25 +167,37 @@ export async function deleteGroup(id: number): Promise<void> {
 }
 
 // ── Meetings ──
+// Note : api.ts transforme déjà les clés snake_case → camelCase, on lit donc
+// directement organiserNom / startTime / typeMedia / createdAt.
 
 export async function fetchMeetings(): Promise<Meeting[]> {
   if (USE_MOCK) return mockMeetings;
-  const res = await api.get('/meetings', { params: { admin: 'true' } });
+  const res = await api.get('/admin/meetings');
   return (res.data || []).map((m: Record<string, unknown>) => ({
-    idMeeting: m.idMeeting,
-    idOrganiser: m.idOrganiser,
-    organiserNom: m.organiser_nom,
-    organiserPseudo: m.organiser_pseudo,
-    organiserAvatar: m.organiser_avatar || '',
-    objet: m.objet,
-    room: m.room,
-    startTime: m.start_time,
-    duree: m.duree,
-    isEnd: m.isEnd,
-    typeMedia: m.type_media,
-    participants: (m.participants as unknown[])?.length || 0,
-    createdAt: m.created_at,
+    idMeeting: m.idMeeting as number,
+    idOrganiser: m.idOrganiser as number,
+    organiserNom: (m.organiserNom as string) || '',
+    organiserPseudo: (m.organiserPseudo as string) || '',
+    organiserAvatar: (m.organiserAvatar as string) || '',
+    objet: (m.objet as string) || '',
+    room: (m.room as string) || '',
+    startTime: m.startTime as string,
+    duree: (m.duree as number) || 0,
+    isEnd: (m.isEnd as number) ?? 0,
+    typeMedia: (m.typeMedia as number) ?? 0,
+    participants: (m.participants as number) || 0,
+    createdAt: m.createdAt as string,
   }));
+}
+
+export async function endMeeting(id: number): Promise<void> {
+  if (USE_MOCK) return;
+  await api.post(`/admin/meetings/${id}/end`);
+}
+
+export async function deleteMeeting(id: number): Promise<void> {
+  if (USE_MOCK) return;
+  await api.delete(`/admin/meetings/${id}`);
 }
 
 // ── Medias ──
@@ -194,4 +206,29 @@ export async function fetchMediaItems(): Promise<MediaItem[]> {
   if (USE_MOCK) return mockMediaItems;
   const res = await api.get('/admin/media');
   return res.data;
+}
+
+export async function deleteMedia(id: number): Promise<void> {
+  if (USE_MOCK) return;
+  await api.delete(`/admin/media/${id}`);
+}
+
+// ── Settings ──
+
+const DEFAULT_SETTINGS: AppSettings = {
+  maintenance: false,
+  appName: 'Alanya',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || '',
+};
+
+export async function fetchSettings(): Promise<AppSettings> {
+  if (USE_MOCK) return DEFAULT_SETTINGS;
+  const res = await api.get('/admin/settings');
+  return res.data as AppSettings;
+}
+
+export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+  if (USE_MOCK) return { ...DEFAULT_SETTINGS, ...patch };
+  const res = await api.put('/admin/settings', patch);
+  return res.data as AppSettings;
 }

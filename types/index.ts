@@ -195,6 +195,12 @@ export interface Meeting {
   createdAt: string;
 }
 
+export interface AppSettings {
+  maintenance: boolean;
+  appName: string;
+  apiUrl: string;
+}
+
 export interface MediaItem {
   id: number;
   senderID: number;
