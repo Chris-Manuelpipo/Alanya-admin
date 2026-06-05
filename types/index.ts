@@ -155,6 +155,30 @@ export interface Group {
   createdAt: string;
 }
 
+export interface GroupMember {
+  alanyaID: number;
+  nom: string;
+  pseudo: string;
+  avatarUrl: string | null;
+  alanyaPhone: string;
+  isOnline: boolean;
+  lastSeen: string | null;
+  typeCompte: number;
+  joinedAt: string | null;
+}
+
+export interface GroupDetail {
+  conversID: number;
+  groupName: string;
+  groupPhoto: string | null;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  memberCount: number;
+  messageCount: number;
+  createdAt: string | null;
+  members: GroupMember[];
+}
+
 export interface Meeting {
   idMeeting: number;
   idOrganiser: number;
