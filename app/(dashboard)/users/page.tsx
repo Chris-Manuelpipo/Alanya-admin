@@ -123,7 +123,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Utilisateurs</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Gestion des utilisateurs Talky ({data?.total ?? 0} total)
+            Gestion des utilisateurs Alanya ({data?.total ?? 0} total)
           </p>
         </div>
         <div className="flex items-center gap-2">

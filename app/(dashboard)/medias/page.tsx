@@ -60,7 +60,7 @@ export default function MediasPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Médias</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Fichiers partagés sur Talky ({mediaItems?.length ?? 0} médias)
+            Fichiers partagés sur Alanya ({mediaItems?.length ?? 0} médias)
           </p>
         </div>
         <Button variant="outline" size="icon" onClick={() => refetch()}>

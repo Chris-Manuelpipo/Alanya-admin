@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <ShieldAlert className="h-5 w-5 text-white" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-bold tracking-tight">Talky Admin</span>
+            <span className="text-lg font-bold tracking-tight">Alanya Admin</span>
           )}
         </div>
 

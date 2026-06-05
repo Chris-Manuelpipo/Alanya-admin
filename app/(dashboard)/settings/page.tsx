@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Save, Globe, Bell, Shield, Palette } from "lucide-react";
 
 export default function SettingsPage() {
-  const [appName, setAppName] = useState("Talky");
+  const [appName, setAppName] = useState("Alanya");
   const [apiUrl, setApiUrl] = useState(process.env.NEXT_PUBLIC_API_URL || "http://158.220.107.211/api");
   const [maintenance, setMaintenance] = useState(false);
   const [saved, setSaved] = useState(false);

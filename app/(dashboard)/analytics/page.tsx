@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Analyse détaillée de l&apos;activité Talky
+            Analyse détaillée de l&apos;activité Alanya
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
             <StatCard title="Messages" value={messagesTotal} icon={MessageSquare} color="#3b82f6" subtitle="cette période" trend={trend(messagesTotal, data.comparison.messages)} />
             <StatCard title="Appels" value={data.calls.total} icon={Phone} color="#8b5cf6" subtitle="cette période" trend={trend(data.calls.total, data.comparison.calls)} />
             <StatCard title="Stories" value={data.stories.total} icon={Smile} color="#f59e0b" subtitle="cette période" trend={trend(data.stories.total, data.comparison.statuses)} />
-            <StatCard title="Nouveaux users" value={data.users.newUsers} icon={UserPlus} color="#22c55e" subtitle="cette période" trend={trend(data.users.newUsers, data.comparison.registrations)} />
+            <StatCard title="Nouveaux utilisateurs" value={data.users.newUsers} icon={UserPlus} color="#22c55e" subtitle="cette période" trend={trend(data.users.newUsers, data.comparison.registrations)} />
           </div>
 
           {/* ── Messagerie ── */}

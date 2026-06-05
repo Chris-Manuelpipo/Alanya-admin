@@ -40,7 +40,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-600 shadow-lg">
             <ShieldAlert className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Talky Admin</CardTitle>
+          <CardTitle className="text-2xl font-bold">Alanya Admin</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             Connectez-vous pour accéder au tableau de bord
           </CardDescription>

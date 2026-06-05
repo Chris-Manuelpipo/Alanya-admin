@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Talky Admin",
-  description: "Tableau de bord d'administration Talky",
+  title: "Alanya Admin",
+  description: "Tableau de bord d'administration Alanya",
 };
 
 export default function RootLayout({

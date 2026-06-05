@@ -81,7 +81,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Vue d&apos;ensemble de l&apos;activité Talky
+            Vue d&apos;ensemble de l&apos;activité Alanya
           </p>
         </div>
         <div className="flex items-center gap-3">
