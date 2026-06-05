@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+// Polices locales (Geist) — aucun appel réseau, build reproductible hors-ligne / CI.
+const sans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-sans",
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,7 +21,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className={inter.variable}>
+    <html lang="fr" suppressHydrationWarning className={sans.variable}>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Providers>{children}</Providers>
