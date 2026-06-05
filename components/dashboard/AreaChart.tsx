@@ -43,15 +43,15 @@ export function AreaChart({ data, title, color = "#6366f1" }: AreaChartProps) {
                   <stop offset="95%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgb(0 0 0 / 0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 12, fill: "rgb(0 0 0 / 0.4)" }}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: "rgb(0 0 0 / 0.4)" }}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
                 tickLine={false}
                 width={40}
@@ -59,7 +59,9 @@ export function AreaChart({ data, title, color = "#6366f1" }: AreaChartProps) {
               <Tooltip
                 contentStyle={{
                   borderRadius: "12px",
-                  border: "none",
+                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                   fontSize: "13px",
                 }}

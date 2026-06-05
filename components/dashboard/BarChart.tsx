@@ -27,15 +27,15 @@ export function BarChart({ data, title, color = "#6366f1" }: BarChartProps) {
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsBar data={data} barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgb(0 0 0 / 0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 12, fill: "rgb(0 0 0 / 0.4)" }}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: "rgb(0 0 0 / 0.4)" }}
+                tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
                 axisLine={false}
                 tickLine={false}
                 width={40}
@@ -43,7 +43,9 @@ export function BarChart({ data, title, color = "#6366f1" }: BarChartProps) {
               <Tooltip
                 contentStyle={{
                   borderRadius: "12px",
-                  border: "none",
+                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                   fontSize: "13px",
                 }}

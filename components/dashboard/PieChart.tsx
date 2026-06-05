@@ -43,7 +43,9 @@ export function PieChart({ data, title }: PieChartProps) {
               <Tooltip
                 contentStyle={{
                   borderRadius: "12px",
-                  border: "none",
+                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "hsl(var(--popover))",
+                  color: "hsl(var(--popover-foreground))",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                   fontSize: "13px",
                 }}
