@@ -1,21 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, Globe, Bell, Shield, Palette } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
+import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
+import { Save, Globe, Bell, Shield, Palette, Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [appName, setAppName] = useState("Alanya");
-  const [apiUrl, setApiUrl] = useState(process.env.NEXT_PUBLIC_API_URL || "http://158.220.107.211/api");
-  const [maintenance, setMaintenance] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { data: settings, isLoading } = useSettings();
+  const updateMutation = useUpdateSettings();
+  const { addToast } = useToast();
+
+  const [appName, setAppName] = useState("");
+  const [apiUrl, setApiUrl] = useState("");
+
+  useEffect(() => {
+    if (settings) {
+      setAppName(settings.appName);
+      setApiUrl(settings.apiUrl);
+    }
+  }, [settings]);
+
+  const maintenance = settings?.maintenance ?? false;
+  const dirty = !!settings && (appName !== settings.appName || apiUrl !== settings.apiUrl);
 
   function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    updateMutation.mutate(
+      { appName, apiUrl },
+      {
+        onSuccess: () => addToast({ title: "Enregistré", variant: "success" }),
+        onError: () => addToast({ title: "Échec", description: "Enregistrement impossible (réservé au super-admin ?)", variant: "error" }),
+      }
+    );
+  }
+
+  function toggleMaintenance() {
+    if (!settings) return;
+    const next = !settings.maintenance;
+    updateMutation.mutate(
+      { maintenance: next },
+      {
+        onSuccess: () => addToast({ title: next ? "Mode maintenance activé" : "Mode maintenance désactivé", variant: "success" }),
+        onError: () => addToast({ title: "Échec", description: "Action réservée au super-admin", variant: "error" }),
+      }
+    );
   }
 
   return (
@@ -25,6 +57,11 @@ export default function SettingsPage() {
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Configuration de l&apos;application</p>
       </div>
 
+      {isLoading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-0 shadow-sm">
           <CardHeader>
@@ -43,9 +80,9 @@ export default function SettingsPage() {
               <Label htmlFor="apiUrl">URL de l&apos;API</Label>
               <Input id="apiUrl" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
             </div>
-            <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              <Save className="h-4 w-4 mr-1" />
-              {saved ? "Enregistré !" : "Enregistrer"}
+            <Button onClick={handleSave} disabled={!dirty || updateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Enregistrer
             </Button>
           </CardContent>
         </Card>
@@ -95,8 +132,9 @@ export default function SettingsPage() {
             <p className="text-sm text-zinc-500">Activer le mode maintenance pour bloquer l&apos;accès des utilisateurs.</p>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setMaintenance(!maintenance)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${maintenance ? "bg-indigo-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                onClick={toggleMaintenance}
+                disabled={updateMutation.isPending}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${maintenance ? "bg-indigo-600" : "bg-zinc-300 dark:bg-zinc-700"}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${maintenance ? "translate-x-6" : "translate-x-1"}`} />
               </button>
@@ -105,6 +143,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      )}
     </div>
   );
 }
