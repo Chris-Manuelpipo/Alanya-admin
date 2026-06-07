@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
+import { useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
+import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon, X, ZoomIn } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
+import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon, CheckCircle2, Shield as ShieldUp, ShieldOff, Trash2, Loader2, X, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const roleLabels: Record<number, string> = { 0: "Utilisateur", 1: "Admin", 2: "Super Admin" };
 
@@ -19,6 +24,21 @@ export default function UserDetailPage() {
   const id = parseInt(params.id as string);
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [confirmBan, setConfirmBan] = useState<{ id: number; reason: string } | null>(null);
+  const [confirmRole, setConfirmRole] = useState<{ id: number; role: number } | null>(null);
+
+  const isSuper = useIsSuperAdmin();
+  const { addToast } = useToast();
+  const queryClient = useQueryClient();
+  const banMutation = useBanUser();
+  const unbanMutation = useUnbanUser();
+  const roleMutation = useSetUserRole();
+  const deleteMutation = useDeleteUser();
+
+  function refreshDetail() {
+    queryClient.invalidateQueries({ queryKey: ["admin-user-detail"] });
+  }
 
   const { data: user, isLoading: userLoading } = useUserDetail(id);
   const { data: activity, isLoading: activityLoading } = useUserActivity(id);
@@ -106,6 +126,70 @@ export default function UserDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {user.exclus ? (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-950"
+                  onClick={() => {
+                    unbanMutation.mutate(user.alanyaID, {
+                      onSuccess: () => { addToast({ title: "Utilisateur débanni", variant: "success" }); refreshDetail(); },
+                    });
+                  }}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Débannir
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                  onClick={() => setConfirmBan({ id: user.alanyaID, reason: "" })}
+                >
+                  <BanIcon className="h-4 w-4 mr-2" />
+                  Bannir
+                </Button>
+              )}
+              {isSuper && user.typeCompte < 2 && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setConfirmRole({ id: user.alanyaID, role: Math.min(user.typeCompte + 1, 2) })}
+                >
+                  <ShieldUp className="h-4 w-4 mr-2" />
+                  Promouvoir
+                </Button>
+              )}
+              {isSuper && user.typeCompte > 0 && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setConfirmRole({ id: user.alanyaID, role: Math.max(user.typeCompte - 1, 0) })}
+                >
+                  <ShieldOff className="h-4 w-4 mr-2" />
+                  Rétrograder
+                </Button>
+              )}
+              {isSuper && (
+                <>
+                  <hr className="border-zinc-200 dark:border-zinc-800" />
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                    onClick={() => setConfirmDelete(user.alanyaID)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Activity + Logins */}
@@ -167,6 +251,77 @@ export default function UserDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Confirmation Dialogs */}
+      <Dialog open={!!confirmBan} onOpenChange={() => setConfirmBan(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bannir l&apos;utilisateur</DialogTitle>
+            <DialogDescription>Le compte sera désactivé et l&apos;utilisateur ne pourra plus se connecter.</DialogDescription>
+          </DialogHeader>
+          <div className="py-3">
+            <label className="text-sm font-medium mb-1 block">Raison (optionnelle)</label>
+            <Input value={confirmBan?.reason || ""} onChange={(e) => setConfirmBan(prev => prev ? { ...prev, reason: e.target.value } : null)} placeholder="Spam, comportement inapproprié..." />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
+            <Button variant="destructive" onClick={() => {
+              if (confirmBan) {
+                banMutation.mutate({ id: confirmBan.id, reason: confirmBan.reason }, {
+                  onSuccess: () => { addToast({ title: "Utilisateur banni", variant: "success" }); setConfirmBan(null); refreshDetail(); },
+                });
+              }
+            }}>
+              {banMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Bannir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmRole} onOpenChange={() => setConfirmRole(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Changer le rôle</DialogTitle>
+            <DialogDescription>Passer au rôle : <strong>{confirmRole ? roleLabels[confirmRole.role] : ""}</strong></DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
+            <Button onClick={() => {
+              if (confirmRole) {
+                roleMutation.mutate({ id: confirmRole.id, typeCompte: confirmRole.role }, {
+                  onSuccess: () => { addToast({ title: "Rôle mis à jour", variant: "success" }); setConfirmRole(null); refreshDetail(); },
+                });
+              }
+            }}>
+              {roleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l&apos;utilisateur</DialogTitle>
+            <DialogDescription>Cette action est irréversible. Toutes les données seront supprimées.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
+            <Button variant="destructive" onClick={() => {
+              if (confirmDelete) {
+                deleteMutation.mutate(confirmDelete, {
+                  onSuccess: () => { addToast({ title: "Utilisateur supprimé", variant: "success" }); setConfirmDelete(null); refreshDetail(); router.push("/users"); },
+                });
+              }
+            }}>
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Photo Preview Dialog */}
       <Dialog open={!!photoPreview} onOpenChange={() => setPhotoPreview(null)}>
