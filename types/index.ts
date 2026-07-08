@@ -101,11 +101,32 @@ export interface ReservedAlanyaPhone {
   usedByPseudo?: string | null;
 }
 
+export interface PatternSuggestion {
+  phoneCanonical: string;
+  label: string;
+  source: 'pattern';
+  isUsed: boolean;
+  assignable: boolean;
+}
+
 export interface PaginatedReservedAlanyaPhones {
   items: ReservedAlanyaPhone[];
   total: number;
   page: number;
   limit: number;
+  patternSuggestion?: PatternSuggestion | null;
+}
+
+export interface AssignablePhoneCheck {
+  phoneCanonical: string;
+  tier: number;
+  isPatternReserved: boolean;
+  inReservedTable: boolean;
+  isTaken: boolean;
+  assignable: boolean;
+  reason: string | null;
+  source: 'pattern' | 'table' | 'standard';
+  hint: string | null;
 }
 
 export interface ReservedAlanyaPhonesParams {

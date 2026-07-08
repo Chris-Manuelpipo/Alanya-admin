@@ -7,7 +7,7 @@ import {
   useAddReservedPhone,
   useRemoveReservedPhone,
 } from "@/hooks/useUsers";
-import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
+import { formatDisplay, formatLiveInput, normalize, validateReservedCandidate } from "@/lib/alanya-phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ export default function ReservedAlanyaPhonesPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const canonical = normalize(phone);
-    const err = validate(canonical);
+    const err = validateReservedCandidate(canonical);
     if (err || !label.trim()) {
       addToast({ title: "Invalid", description: err || "Libellé requis", variant: "error" });
       return;
@@ -105,8 +105,12 @@ export default function ReservedAlanyaPhonesPage() {
             <Input
               value={phone}
               onChange={(e) => setPhone(formatLiveInput(e.target.value))}
-              placeholder="Numéro (ex. 00 00 00 00)"
+              placeholder="3 / 4 chiffres, ou XXYYZZTT (ex. 11 22 33 44)"
             />
+            <p className="text-xs text-zinc-500">
+              Les numéros 3 et 4 chiffres, et les 8 chiffres du type XXYYZZTT, sont exclus de l&apos;auto-génération
+              à l&apos;inscription. Ajoutez ici ceux que vous voulez lister / attribuer.
+            </p>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Libellé (ex. Opérateur)" />
             <Button type="submit" disabled={addMutation.isPending}>
               {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ajouter"}

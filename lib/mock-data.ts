@@ -210,6 +210,67 @@ export async function fetchReservedAlanyaPhones(
     total: Number(data.total ?? rows.length),
     page: Number(data.page ?? page),
     limit: Number(data.limit ?? limit),
+    patternSuggestion: mapPatternSuggestion(data.pattern_suggestion),
+  };
+}
+
+function mapPatternSuggestion(
+  raw: unknown,
+): import('@/types').PatternSuggestion | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const phone =
+    (r.phone_canonical as string) || (r.phoneCanonical as string) || '';
+  if (!phone) return null;
+  return {
+    phoneCanonical: phone,
+    label: (r.label as string) || 'Pattern réservé',
+    source: 'pattern',
+    isUsed: Boolean(r.isUsed ?? r.is_used),
+    assignable: Boolean(r.assignable ?? !r.is_used),
+  };
+}
+
+export async function checkAssignablePhone(
+  phone: string,
+): Promise<import('@/types').AssignablePhoneCheck> {
+  if (USE_MOCK) {
+    const canonical = phone.replace(/\D/g, '');
+    const isPattern =
+      canonical.length === 3 ||
+      canonical.length === 4 ||
+      (canonical.length === 8 &&
+        canonical[0] === canonical[1] &&
+        canonical[2] === canonical[3] &&
+        canonical[4] === canonical[5] &&
+        canonical[6] === canonical[7]);
+    return {
+      phoneCanonical: canonical,
+      tier: canonical.length,
+      isPatternReserved: isPattern,
+      inReservedTable: false,
+      isTaken: false,
+      assignable: true,
+      reason: null,
+      source: isPattern ? 'pattern' : 'standard',
+      hint: isPattern ? 'Pattern réservé — attribution directe autorisée' : null,
+    };
+  }
+
+  const res = await api.get('/admin/alanya-phones/check-assignable', {
+    params: { phone },
+  });
+  const d = res.data || {};
+  return {
+    phoneCanonical: d.phone_canonical as string,
+    tier: Number(d.tier),
+    isPatternReserved: Boolean(d.is_pattern_reserved),
+    inReservedTable: Boolean(d.in_reserved_table),
+    isTaken: Boolean(d.is_taken),
+    assignable: Boolean(d.assignable),
+    reason: (d.reason as string) ?? null,
+    source: d.source as 'pattern' | 'table' | 'standard',
+    hint: (d.hint as string) ?? null,
   };
 }
 

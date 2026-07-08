@@ -18,6 +18,36 @@ export function validate(canonical: string): string | null {
   return null;
 }
 
+/** Forme XXYYZZTT (ex. 11223344). */
+export function isXxyyzztt(canonical: string): boolean {
+  return (
+    canonical.length === 8 &&
+    /^\d{8}$/.test(canonical) &&
+    canonical[0] === canonical[1] &&
+    canonical[2] === canonical[3] &&
+    canonical[4] === canonical[5] &&
+    canonical[6] === canonical[7]
+  );
+}
+
+/** Patterns réservés : 3 ch., 4 ch., ou 8 ch. XXYYZZTT. */
+export function isPatternReserved(canonical: string): boolean {
+  if (!canonical || !/^\d+$/.test(canonical)) return false;
+  const len = canonical.length;
+  if (len === 3 || len === 4) return true;
+  if (len === 8) return isXxyyzztt(canonical);
+  return false;
+}
+
+export function validateReservedCandidate(canonical: string): string | null {
+  const err = validate(canonical);
+  if (err) return err;
+  if (!isPatternReserved(canonical)) {
+    return 'Réservation limitée aux numéros 3 ou 4 chiffres, ou 8 chiffres au format XXYYZZTT (ex. 11 22 33 44)';
+  }
+  return null;
+}
+
 function groupDigits(digits: string, groups: number[]): string {
   const parts: string[] = [];
   let i = 0;
@@ -48,6 +78,11 @@ export function formatLiveInput(input: string): string {
   return groupDigits(digits.slice(0, 8), [2, 2, 2, 2]);
 }
 
-export function isNumericQuery(q: string): boolean {
-  return /^\d+$/.test(normalize(q));
+export function isCompletePhone(canonical: string): boolean {
+  return validate(canonical) === null;
+}
+
+export function isAssignableQuery(q: string): boolean {
+  const digits = normalize(q);
+  return digits.length > 0 && isCompletePhone(digits);
 }

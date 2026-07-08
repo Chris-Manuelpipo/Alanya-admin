@@ -10,6 +10,7 @@ import {
   fetchReservedAlanyaPhones,
   addReservedAlanyaPhone,
   removeReservedAlanyaPhone,
+  checkAssignablePhone,
 } from '@/lib/mock-data';
 import type { CreateUserPayload, ReservedAlanyaPhonesParams } from '@/types';
 
@@ -108,5 +109,14 @@ export function useRemoveReservedPhone() {
   return useMutation({
     mutationFn: (phone: string) => removeReservedAlanyaPhone(phone),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reserved-phones'] }),
+  });
+}
+
+export function useCheckAssignablePhone(phone: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ['admin-check-assignable-phone', phone],
+    queryFn: () => checkAssignablePhone(phone!),
+    enabled: enabled && !!phone,
+    staleTime: 10_000,
   });
 }
