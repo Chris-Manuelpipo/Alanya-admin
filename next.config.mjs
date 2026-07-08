@@ -8,7 +8,6 @@ export default nextConfig;*/
 const nextConfig = {
   basePath: '/admin',
   assetPrefix: '/admin',
-  output: 'standalone', // build plus léger, pratique pour PM2/serveur
 };
 
 export default nextConfig;
