@@ -6,7 +6,7 @@ import { useGroupDetail, useDeleteGroup } from "@/hooks/useGroups";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { GroupDetailPageSkeleton } from "@/components/skeletons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
 import { ArrowLeft, Users, MessageSquare, Calendar, Trash2, Shield, Phone } from "lucide-react";
@@ -38,15 +38,7 @@ export default function GroupDetailPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1"><Skeleton className="h-64 rounded-xl" /></div>
-          <div className="lg:col-span-2"><Skeleton className="h-64 rounded-xl" /></div>
-        </div>
-      </div>
-    );
+    return <GroupDetailPageSkeleton />;
   }
 
   if (!group) {

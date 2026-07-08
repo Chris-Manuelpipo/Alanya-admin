@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useMediaItems, useDeleteMedia } from "@/hooks/useMedias";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MediaGridSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { RefreshCw, Image, Video, FileText, Headphones, Search, Download, Trash2, Eye, SlidersHorizontal } from "lucide-react";
@@ -31,7 +31,7 @@ export default function MediasPage() {
   const [values, setValues] = useState<Record<string, string>>(MEDIA_DEFAULTS);
   const [preview, setPreview] = useState<MediaItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
-  const { data: mediaItems, isLoading, isError, refetch } = useMediaItems();
+  const { data: mediaItems, isLoading, isFetching, isError, refetch } = useMediaItems();
   const deleteMutation = useDeleteMedia();
   const { addToast } = useToast();
 
@@ -121,8 +121,8 @@ export default function MediasPage() {
           <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} className={showFilters ? "bg-indigo-50 dark:bg-indigo-950" : ""}>
             <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtres
           </Button>
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -139,27 +139,23 @@ export default function MediasPage() {
         onReset={() => setValues(MEDIA_DEFAULTS)}
       />
 
-      {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-        </div>
-      )}
+      {(isLoading || isFetching) && <MediaGridSkeleton count={8} />}
 
-      {isError && (
+      {!isLoading && !isFetching && isError && (
         <div className="text-center py-16">
           <p className="text-red-500 text-sm mb-3">Erreur de chargement</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Réessayer</Button>
         </div>
       )}
 
-      {mediaItems && mediaItems.length === 0 && (
+      {!isLoading && !isFetching && mediaItems && mediaItems.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Image className="h-12 w-12 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
           Aucun média
         </div>
       )}
 
-      {mediaItems && mediaItems.length > 0 && (
+      {!isLoading && !isFetching && mediaItems && mediaItems.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((media) => {
             const Icon = mediaTypeIcons[media.type] || Image;
@@ -201,7 +197,7 @@ export default function MediasPage() {
         </div>
       )}
 
-      {mediaItems && filtered.length === 0 && (
+      {!isLoading && !isFetching && mediaItems && filtered.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Search className="h-10 w-10 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
           Aucun média trouvé

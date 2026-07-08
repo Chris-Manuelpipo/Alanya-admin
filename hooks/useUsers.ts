@@ -1,5 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchUsers, banUser, unbanUser, setUserRole, deleteUser } from '@/lib/mock-data';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import {
+  fetchUsers,
+  banUser,
+  unbanUser,
+  setUserRole,
+  deleteUser,
+  createUser,
+  updateUserPhone,
+  fetchReservedAlanyaPhones,
+  addReservedAlanyaPhone,
+  removeReservedAlanyaPhone,
+} from '@/lib/mock-data';
+import type { CreateUserPayload, ReservedAlanyaPhonesParams } from '@/types';
 
 interface UsersParams {
   search?: string;
@@ -15,6 +27,7 @@ export function useUsers(params: UsersParams) {
   return useQuery({
     queryKey: ['admin-users', params],
     queryFn: () => fetchUsers(params),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -47,5 +60,53 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: (id: number) => deleteUser(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateUserPayload) => createUser(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+}
+
+export function useUpdateUserPhone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, alanyaPhone }: { id: number; alanyaPhone: string }) =>
+      updateUserPhone(id, alanyaPhone),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      qc.invalidateQueries({ queryKey: ['admin-user-detail', id] });
+    },
+  });
+}
+
+export function useReservedAlanyaPhones(
+  params: ReservedAlanyaPhonesParams = {},
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['admin-reserved-phones', params],
+    queryFn: () => fetchReservedAlanyaPhones(params),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useAddReservedPhone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ phone, label }: { phone: string; label: string }) =>
+      addReservedAlanyaPhone(phone, label),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reserved-phones'] }),
+  });
+}
+
+export function useRemoveReservedPhone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (phone: string) => removeReservedAlanyaPhone(phone),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reserved-phones'] }),
   });
 }

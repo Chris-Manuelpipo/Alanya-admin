@@ -1,10 +1,11 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
 import { mockGroups, mockGroupDetail } from '@/mock/groups';
 import { mockMeetings } from '@/mock/meetings';
 import { mockMediaItems } from '@/mock/medias';
+import { mockCountries } from '@/mock/countries';
 import { api } from './api';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
@@ -64,6 +65,12 @@ export async function fetchAnalytics(from?: string, to?: string): Promise<Analyt
 
 // ── Users ──
 
+export async function fetchCountries(): Promise<Pays[]> {
+  if (USE_MOCK) return mockCountries;
+  const res = await api.get('/pays');
+  return (res.data || []) as Pays[];
+}
+
 export async function fetchUsers(params: {
   search?: string;
   status?: string;
@@ -116,6 +123,119 @@ export async function setUserRole(id: number, typeCompte: number): Promise<void>
 export async function deleteUser(id: number): Promise<void> {
   if (USE_MOCK) return;
   await api.delete(`/admin/users/${id}`);
+}
+
+export async function createUser(payload: import('@/types').CreateUserPayload): Promise<UserDetail> {
+  if (USE_MOCK) {
+    return {
+      ...mockUserDetail,
+      nom: payload.nom,
+      pseudo: payload.pseudo,
+      alanyaPhone: payload.alanyaPhone || '12345678',
+      email: payload.email || '',
+    };
+  }
+  const res = await api.post('/admin/users', {
+    nom: payload.nom,
+    pseudo: payload.pseudo,
+    password: payload.password,
+    email: payload.email,
+    alanyaPhone: payload.alanyaPhone,
+    generateLength: payload.generateLength,
+    idPays: payload.idPays,
+    avatarGender: payload.avatarGender,
+    type_compte: payload.type_compte,
+  });
+  return res.data;
+}
+
+export async function updateUserPhone(id: number, alanyaPhone: string): Promise<void> {
+  if (USE_MOCK) return;
+  await api.put(`/admin/users/${id}/phone`, { alanyaPhone });
+}
+
+export async function fetchReservedAlanyaPhones(
+  params: import('@/types').ReservedAlanyaPhonesParams = {},
+): Promise<import('@/types').PaginatedReservedAlanyaPhones> {
+  const mockItems: import('@/types').ReservedAlanyaPhone[] = [
+    { id: 1, phoneCanonical: '000', label: 'Réservé 3 ch.', createdBy: null, createdAt: new Date().toISOString(), isUsed: false },
+    { id: 2, phoneCanonical: '0000', label: 'Réservé 4 ch.', createdBy: null, createdAt: new Date().toISOString(), isUsed: true, usedByAlanyaId: 4, usedByNom: 'Sophie L.', usedByPseudo: 'sophiel' },
+    { id: 3, phoneCanonical: '00000000', label: 'Réservé 8 ch.', createdBy: null, createdAt: new Date().toISOString(), isUsed: false },
+  ];
+
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 20;
+
+  if (USE_MOCK) {
+    let filtered = [...mockItems];
+    const q = params.q?.trim();
+    if (q) {
+      const digits = q.replace(/\D/g, '');
+      filtered = filtered.filter((item) =>
+        digits
+          ? item.phoneCanonical.startsWith(digits)
+          : item.label.toLowerCase().includes(q.toLowerCase()),
+      );
+    }
+    if (params.available === '1') filtered = filtered.filter((item) => !item.isUsed);
+    if (params.available === '0') filtered = filtered.filter((item) => item.isUsed);
+    const start = (page - 1) * limit;
+    return {
+      items: filtered.slice(start, start + limit),
+      total: filtered.length,
+      page,
+      limit,
+    };
+  }
+
+  const res = await api.get('/admin/reserved-alanya-phones', { params });
+  const data = res.data || {};
+
+  // Ancienne API (tableau brut) : ne pas charger 100k+ lignes d'un coup
+  if (Array.isArray(data)) {
+    const start = (page - 1) * limit;
+    const slice = data.slice(start, start + limit);
+    return {
+      items: slice.map((r: Record<string, unknown>) => mapReservedRow(r)),
+      total: data.length,
+      page,
+      limit,
+    };
+  }
+
+  const rows = data.items || [];
+
+  return {
+    items: rows.map((r: Record<string, unknown>) => mapReservedRow(r)),
+    total: Number(data.total ?? rows.length),
+    page: Number(data.page ?? page),
+    limit: Number(data.limit ?? limit),
+  };
+}
+
+function mapReservedRow(r: Record<string, unknown>): import('@/types').ReservedAlanyaPhone {
+  return {
+      id: r.id as number,
+      phoneCanonical: (r.phone_canonical as string) || (r.phoneCanonical as string) || '',
+      label: r.label as string,
+      createdBy: (r.created_by as number) ?? null,
+      createdAt: (r.created_at as string) || '',
+      createdByNom: (r.created_by_nom as string) ?? null,
+      isUsed: Boolean(r.isUsed ?? r.is_used),
+      usedByAlanyaId: (r.usedByAlanyaId as number) ?? (r.used_by_alanya_id as number) ?? null,
+      usedByNom: (r.usedByNom as string) ?? (r.used_by_nom as string) ?? null,
+      usedByPseudo: (r.usedByPseudo as string) ?? (r.used_by_pseudo as string) ?? null,
+  };
+}
+
+export async function addReservedAlanyaPhone(phone: string, label: string): Promise<void> {
+  if (USE_MOCK) return;
+  await api.post('/admin/reserved-alanya-phones', { phone, label });
+}
+
+export async function removeReservedAlanyaPhone(phone: string): Promise<void> {
+  if (USE_MOCK) return;
+  await api.delete(`/admin/reserved-alanya-phones/${encodeURIComponent(phone)}`);
 }
 
 // ── Groups ──

@@ -3,12 +3,13 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
+import { formatDisplay } from "@/lib/alanya-phone";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { UsersTableRowsSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -26,6 +27,7 @@ import {
   Loader2,
   Download,
   X,
+  UserPlus,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
@@ -51,7 +53,7 @@ export default function UsersPage() {
   const [order, setOrder] = useState("desc");
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const { data, isLoading } = useUsers({ search, status, page, limit: 20, idPays, sort, order });
+  const { data, isLoading, isFetching } = useUsers({ search, status, page, limit: 20, idPays, sort, order });
   const banMutation = useBanUser();
   const unbanMutation = useUnbanUser();
   const roleMutation = useSetUserRole();
@@ -129,6 +131,9 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => router.push("/users/new")}>
+            <UserPlus className="h-4 w-4 mr-1" /> Créer
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>
@@ -270,15 +275,12 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-zinc-800">
-              {isLoading && [...Array(8)].map((_, i) => (
-                <tr key={i}>
-                  <td className="px-2 py-3"><Skeleton className="h-5 w-5" /></td>
-                  {[...Array(9)].map((_, j) => (
-                    <td key={j} className="px-3 py-3"><Skeleton className="h-5 w-full" /></td>
-                  ))}
-                </tr>
-              ))}
-              {data?.items.map((user) => (
+              {isLoading ? (
+                <UsersTableRowsSkeleton count={8} />
+              ) : isFetching ? (
+                <UsersTableRowsSkeleton count={6} />
+              ) : (
+                data?.items.map((user) => (
                 <tr key={user.alanyaID} className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors ${selected.has(user.alanyaID) ? "bg-indigo-50/50 dark:bg-indigo-950/20" : ""}`}>
                   <td className="px-2 py-3">
                     <input type="checkbox" checked={selected.has(user.alanyaID)} onChange={() => toggleSelect(user.alanyaID)} className="rounded border-zinc-300" />
@@ -299,7 +301,7 @@ export default function UsersPage() {
                     </Avatar>
                   </td>
                   <td className="px-3 py-3 text-zinc-600">{user.email}</td>
-                  <td className="px-3 py-3 text-zinc-600 font-mono text-xs">{user.alanyaPhone}</td>
+                  <td className="px-3 py-3 text-zinc-600 font-mono text-xs">{formatDisplay(user.alanyaPhone)}</td>
                   <td className="px-3 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[user.typeCompte]}`}>
                       {roleLabels[user.typeCompte]}
@@ -323,8 +325,9 @@ export default function UsersPage() {
                     <ActionsMenu canSuper={isSuper} user={user} onView={() => router.push(`/users/${user.alanyaID}`)} onBan={() => setConfirmBan({ id: user.alanyaID, reason: "" })} onUnban={() => { unbanMutation.mutate(user.alanyaID); addToast({ title: "Utilisateur débanni", variant: "success" }); }} onRoleUp={() => setConfirmRole({ id: user.alanyaID, role: Math.min(user.typeCompte + 1, 2) })} onRoleDown={() => setConfirmRole({ id: user.alanyaID, role: Math.max(user.typeCompte - 1, 0) })} onDelete={() => setConfirmDelete(user.alanyaID)} />
                   </td>
                 </tr>
-              ))}
-              {!isLoading && data?.items.length === 0 && (
+              ))
+              )}
+              {!isLoading && !isFetching && data?.items.length === 0 && (
                 <tr><td colSpan={10} className="px-4 py-16 text-center">
                   <div className="text-zinc-300 dark:text-zinc-600 mb-2">
                     <Search className="h-10 w-10 mx-auto" />
@@ -345,10 +348,10 @@ export default function UsersPage() {
             Page {data.page} sur {Math.ceil(data.total / data.limit)} ({data.total} résultats)
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => { setPage(p => p - 1); setSelected(new Set()); }}>
+            <Button variant="outline" size="sm" disabled={page <= 1 || isFetching} onClick={() => { setPage(p => p - 1); setSelected(new Set()); }}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
             </Button>
-            <Button variant="outline" size="sm" disabled={page >= Math.ceil(data.total / data.limit)} onClick={() => { setPage(p => p + 1); setSelected(new Set()); }}>
+            <Button variant="outline" size="sm" disabled={page >= Math.ceil(data.total / data.limit) || isFetching} onClick={() => { setPage(p => p + 1); setSelected(new Set()); }}>
               Suivant <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

@@ -2,7 +2,7 @@
 
 import { useGroups, useDeleteGroup } from "@/hooks/useGroups";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { GroupGridSkeleton } from "@/components/skeletons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -32,7 +32,7 @@ const GROUP_FILTERS: FilterDef[] = [
 const GROUP_DEFAULTS = { status: "", sort: "createdAt", order: "desc" };
 
 export default function GroupsPage() {
-  const { data: groups, isLoading, isError, refetch } = useGroups();
+  const { data: groups, isLoading, isFetching, isError, refetch } = useGroups();
   const { addToast } = useToast();
   const router = useRouter();
   const deleteGroup = useDeleteGroup();
@@ -88,8 +88,8 @@ export default function GroupsPage() {
           <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} className={showFilters ? "bg-indigo-50 dark:bg-indigo-950" : ""}>
             <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtres
           </Button>
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -106,38 +106,30 @@ export default function GroupsPage() {
         onReset={() => setValues(GROUP_DEFAULTS)}
       />
 
-      {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="border-0 shadow-sm">
-              <CardContent className="p-5"><Skeleton className="h-6 w-3/4 mb-3" /><Skeleton className="h-4 w-1/2" /></CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {(isLoading || isFetching) && <GroupGridSkeleton count={6} />}
 
-      {isError && (
+      {!isLoading && !isFetching && isError && (
         <div className="text-center py-16">
           <p className="text-red-500 text-sm mb-3">Erreur de chargement</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Réessayer</Button>
         </div>
       )}
 
-      {groups && groups.length === 0 && (
+      {!isLoading && !isFetching && groups && groups.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Users className="h-12 w-12 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
           Aucun groupe
         </div>
       )}
 
-      {groups && groups.length > 0 && filtered.length === 0 && (
+      {!isLoading && !isFetching && groups && groups.length > 0 && filtered.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Search className="h-10 w-10 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
           Aucun groupe trouvé
         </div>
       )}
 
-      {filtered.length > 0 && (
+      {!isLoading && !isFetching && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((group) => (
             <Card

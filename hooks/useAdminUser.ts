@@ -15,3 +15,7 @@ export function useAdminRole(): number {
 export function useIsSuperAdmin(): boolean {
   return useAdminRole() >= 2;
 }
+
+export function useIsAdmin(): boolean {
+  return useAdminRole() >= 1;
+}

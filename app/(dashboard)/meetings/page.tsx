@@ -3,7 +3,7 @@
 import { useMeetings, useEndMeeting, useDeleteMeeting } from "@/hooks/useMeetings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MeetingListSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
@@ -36,7 +36,7 @@ const MEETING_FILTERS: FilterDef[] = [
 const MEETING_DEFAULTS = { status: "", type: "", sort: "startTime", order: "desc" };
 
 export default function MeetingsPage() {
-  const { data: meetings, isLoading, isError, refetch } = useMeetings();
+  const { data: meetings, isLoading, isFetching, isError, refetch } = useMeetings();
   const endMutation = useEndMeeting();
   const deleteMutation = useDeleteMeeting();
   const { addToast } = useToast();
@@ -101,8 +101,8 @@ export default function MeetingsPage() {
           <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} className={showFilters ? "bg-indigo-50 dark:bg-indigo-950" : ""}>
             <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtres
           </Button>
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
@@ -119,34 +119,30 @@ export default function MeetingsPage() {
         onReset={() => setValues(MEETING_DEFAULTS)}
       />
 
-      {isLoading && (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-        </div>
-      )}
+      {(isLoading || isFetching) && <MeetingListSkeleton count={5} />}
 
-      {isError && (
+      {!isLoading && !isFetching && isError && (
         <div className="text-center py-16">
           <p className="text-red-500 text-sm mb-3">Erreur de chargement</p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Réessayer</Button>
         </div>
       )}
 
-      {meetings && meetings.length === 0 && (
+      {!isLoading && !isFetching && meetings && meetings.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Video className="h-12 w-12 mx-auto mb-3 text-zinc-300 dark:text-zinc-600" />
           Aucune réunion
         </div>
       )}
 
-      {meetings && meetings.length > 0 && filtered.length === 0 && (
+      {!isLoading && !isFetching && meetings && meetings.length > 0 && filtered.length === 0 && (
         <div className="text-center py-16 text-zinc-400 text-sm">
           <Search className="h-10 w-10 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
           Aucune réunion trouvée
         </div>
       )}
 
-      {filtered.length > 0 && (
+      {!isLoading && !isFetching && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((meeting) => (
             <Card key={meeting.idMeeting} className="border-0 shadow-sm hover:shadow-md transition-shadow group">

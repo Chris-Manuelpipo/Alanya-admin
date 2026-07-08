@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FeedListSkeleton } from "@/components/skeletons";
 import { UserPlus, MessageSquare, Phone, Video, Smile } from "lucide-react";
 import { ActivityEntry } from "@/types";
 
@@ -34,17 +34,7 @@ export function ActivityFeed({ data, isLoading }: ActivityFeedProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-full" />
-                <div className="space-y-1.5 flex-1">
-                  <Skeleton className="h-4 w-3/5" />
-                  <Skeleton className="h-3 w-2/5" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <FeedListSkeleton count={5} />
         ) : (
           <div className="space-y-1">
             {data?.map((entry) => {

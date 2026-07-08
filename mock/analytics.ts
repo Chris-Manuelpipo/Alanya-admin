@@ -45,6 +45,11 @@ export const mockAnalytics: Analytics = {
     avgDuration: 218,
     totalDuration: 1334520,
     successRate: 75,
+    relay: 1820,
+    p2p: 4300,
+    modeUnknown: 2003,
+    relayRate: 30,
+    p2pRate: 70,
   },
   callsByDay: [
     { date: '2026-05-28', audio: 720, video: 410 },

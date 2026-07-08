@@ -4,13 +4,18 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
-import { useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { useBanUser, useUnbanUser, useSetUserRole, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
+import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
+import { useIsSuperAdmin, useIsAdmin } from "@/hooks/useAdminUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  UserDetailPageSkeleton,
+  ActivityStatGridSkeleton,
+  LoginHistorySkeleton,
+} from "@/components/skeletons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
 import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon, CheckCircle2, Shield as ShieldUp, ShieldOff, Trash2, Loader2, X, ZoomIn } from "lucide-react";
@@ -27,14 +32,18 @@ export default function UserDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [confirmBan, setConfirmBan] = useState<{ id: number; reason: string } | null>(null);
   const [confirmRole, setConfirmRole] = useState<{ id: number; role: number } | null>(null);
+  const [showPhoneChange, setShowPhoneChange] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
 
   const isSuper = useIsSuperAdmin();
+  const isAdmin = useIsAdmin();
   const { addToast } = useToast();
   const queryClient = useQueryClient();
   const banMutation = useBanUser();
   const unbanMutation = useUnbanUser();
   const roleMutation = useSetUserRole();
   const deleteMutation = useDeleteUser();
+  const phoneMutation = useUpdateUserPhone();
 
   function refreshDetail() {
     queryClient.invalidateQueries({ queryKey: ["admin-user-detail"] });
@@ -45,15 +54,7 @@ export default function UserDetailPage() {
   const { data: logins, isLoading: loginsLoading } = useUserLogins(id);
 
   if (userLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1"><Skeleton className="h-64 rounded-xl" /></div>
-          <div className="lg:col-span-2"><Skeleton className="h-64 rounded-xl" /></div>
-        </div>
-      </div>
-    );
+    return <UserDetailPageSkeleton />;
   }
 
   if (!user) {
@@ -73,7 +74,7 @@ export default function UserDetailPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{user.nom}</h1>
-          <p className="text-sm text-zinc-500">@{user.pseudo} · {user.alanyaPhone}</p>
+          <p className="text-sm text-zinc-500">@{user.pseudo} · {formatDisplay(user.alanyaPhone)}</p>
         </div>
       </div>
 
@@ -110,7 +111,7 @@ export default function UserDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <Row icon={Mail} label={user.email} />
-              <Row icon={Phone} label={user.alanyaPhone} />
+              <Row icon={Phone} label={formatDisplay(user.alanyaPhone)} />
               <Row icon={Globe} label={user.paysLibelle || "Inconnu"} />
               <Row icon={Shield} label={roleLabels[user.typeCompte] || "Inconnu"} />
               <Row icon={Calendar} label={`Inscrit le ${user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr") : "-"}`} />
@@ -153,6 +154,19 @@ export default function UserDetailPage() {
                 >
                   <BanIcon className="h-4 w-4 mr-2" />
                   Bannir
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setNewPhone(formatDisplay(user.alanyaPhone));
+                    setShowPhoneChange(true);
+                  }}
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Changer le numéro
                 </Button>
               )}
               {isSuper && user.typeCompte < 2 && (
@@ -200,9 +214,7 @@ export default function UserDetailPage() {
             </CardHeader>
             <CardContent>
               {activityLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
-                </div>
+                <ActivityStatGridSkeleton count={5} />
               ) : activity ? (
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                   <StatBox icon={MessageSquare} label="Messages" value={activity.messagesSent} color="#3b82f6" />
@@ -221,7 +233,7 @@ export default function UserDetailPage() {
             </CardHeader>
             <CardContent>
               {loginsLoading ? (
-                <div className="space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+                <LoginHistorySkeleton count={4} />
               ) : (
                 <div className="space-y-3">
                   {logins?.map((login) => (
@@ -318,6 +330,50 @@ export default function UserDetailPage() {
             }}>
               {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPhoneChange} onOpenChange={setShowPhoneChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Changer le numéro Alanya</DialogTitle>
+            <DialogDescription>Nouveau numéro (3, 4 ou 8 chiffres). Notification envoyée à l&apos;utilisateur.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newPhone}
+            onChange={(e) => setNewPhone(formatLiveInput(e.target.value))}
+            placeholder="00 00 00 00"
+          />
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
+            <Button
+              onClick={() => {
+                const canonical = normalize(newPhone);
+                const err = validate(canonical);
+                if (err) {
+                  addToast({ title: "Numéro invalide", description: err, variant: "error" });
+                  return;
+                }
+                phoneMutation.mutate(
+                  { id: user.alanyaID, alanyaPhone: canonical },
+                  {
+                    onSuccess: () => {
+                      addToast({ title: "Numéro mis à jour", variant: "success" });
+                      setShowPhoneChange(false);
+                      refreshDetail();
+                    },
+                    onError: (e: unknown) => {
+                      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Erreur";
+                      addToast({ title: "Échec", description: msg, variant: "error" });
+                    },
+                  }
+                );
+              }}
+            >
+              {phoneMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Confirmer
             </Button>
           </DialogFooter>
         </DialogContent>

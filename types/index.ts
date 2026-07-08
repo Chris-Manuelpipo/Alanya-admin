@@ -68,6 +68,53 @@ export interface UsersResponse {
   limit: number;
 }
 
+export interface Pays {
+  idPays: number;
+  libelle: string;
+  prefix: string;
+  timeZone?: string;
+  decalageHoraire?: string;
+}
+
+export interface CreateUserPayload {
+  nom: string;
+  pseudo: string;
+  password: string;
+  email?: string;
+  alanyaPhone?: string;
+  generateLength?: 3 | 4 | 8;
+  idPays?: number;
+  avatarGender?: 'male' | 'female';
+  type_compte?: number;
+}
+
+export interface ReservedAlanyaPhone {
+  id: number;
+  phoneCanonical: string;
+  label: string;
+  createdBy: number | null;
+  createdAt: string;
+  createdByNom?: string | null;
+  isUsed: boolean;
+  usedByAlanyaId?: number | null;
+  usedByNom?: string | null;
+  usedByPseudo?: string | null;
+}
+
+export interface PaginatedReservedAlanyaPhones {
+  items: ReservedAlanyaPhone[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ReservedAlanyaPhonesParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  available?: '0' | '1' | '';
+}
+
 export interface ActivityEntry {
   id: string;
   type: 'user_joined' | 'message' | 'call' | 'meeting' | 'status';
@@ -94,6 +141,11 @@ export interface CallStats {
   avgDuration: number;
   totalDuration: number;
   successRate: number;
+  relay: number;
+  p2p: number;
+  modeUnknown: number;
+  relayRate: number;
+  p2pRate: number;
 }
 
 export interface StoryStats {

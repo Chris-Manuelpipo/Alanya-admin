@@ -17,6 +17,7 @@ function snakeToCamel(obj: unknown): unknown {
 
 export const api = axios.create({
   baseURL: API_BASE,
+  timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
   transformResponse: [
     ...(axios.defaults.transformResponse as []),

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SettingsPageSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { Save, Globe, Bell, Shield, Palette, Loader2, Lock } from "lucide-react";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { data: settings, isLoading } = useSettings();
   const updateMutation = useUpdateSettings();
   const { addToast } = useToast();
@@ -67,9 +69,7 @@ export default function SettingsPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
-        </div>
+        <SettingsPageSkeleton />
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-0 shadow-sm">
@@ -151,6 +151,20 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {isSuper && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Numéros Alanya réservés</CardTitle>
+              <CardDescription>Gérer les numéros réservés (super-admin)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => router.push("/settings/reserved-alanya-phones")}>
+                Ouvrir la liste
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
       )}
     </div>
