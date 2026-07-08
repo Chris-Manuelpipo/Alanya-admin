@@ -11,4 +11,4 @@ const nextConfig = {
   output: 'standalone', // build plus léger, pratique pour PM2/serveur
 };
 
-module.exports = nextConfig;
+export default nextConfig;
