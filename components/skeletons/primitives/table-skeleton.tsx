@@ -56,10 +56,8 @@ function UserTableRowSkeleton({ index }: { index: number }) {
 
 export function UsersTableRowsSkeleton({
   count = 8,
-  ariaLabel = "Chargement des utilisateurs",
 }: {
   count?: number;
-  ariaLabel?: string;
 }) {
   return (
     <>
