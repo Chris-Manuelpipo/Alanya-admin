@@ -11,6 +11,8 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { DashboardContentSkeleton } from "@/components/skeletons";
 import { useStats, useActivityFeed } from "@/hooks/useAdmin";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
+import { getAdminUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -75,8 +77,12 @@ export default function DashboardPage() {
   const totalActivity = stats ? stats.messagesPeriod + stats.callsPeriod + stats.statusesPeriod : 0;
   const showSkeleton = isLoading || isFetching;
 
+  const user = getAdminUser();
+
   return (
     <div className="space-y-6">
+      <DashboardBanner adminName={user?.nom || user?.email} />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>

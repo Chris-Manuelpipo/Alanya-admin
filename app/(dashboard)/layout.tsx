@@ -7,10 +7,10 @@ import {
   Users,
   UsersRound,
   Video,
-  Image,
+  Image as ImageIcon,
   Settings,
+  MapPin,
   LogOut,
-  ShieldAlert,
   ChevronLeft,
   Menu,
 } from "lucide-react";
@@ -27,7 +27,8 @@ const navItems = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/groups", label: "Groups", icon: UsersRound },
   { href: "/meetings", label: "Meetings", icon: Video },
-  { href: "/medias", label: "Medias", icon: Image },
+  { href: "/medias", label: "Medias", icon: ImageIcon },
+  { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
   { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
@@ -65,9 +66,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       >
         <div className="flex items-center gap-3 px-4 h-16 border-b dark:border-zinc-800">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow">
-            <ShieldAlert className="h-5 w-5 text-white" />
-          </div>
+          <img
+            src="/admin/logo.png"
+            alt="Alanya"
+            width={36}
+            height={36}
+            className="shrink-0 rounded-lg shadow-sm object-contain"
+          />
           {!collapsed && (
             <span className="text-lg font-bold tracking-tight">Alanya Admin</span>
           )}
