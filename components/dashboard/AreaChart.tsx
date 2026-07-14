@@ -72,6 +72,13 @@ export function AreaChart({ data, title, color = "#6366f1" }: AreaChartProps) {
                 stroke={color}
                 strokeWidth={2}
                 fill="url(#colorCount)"
+                activeDot={{
+                  r: 6,
+                  fill: color,
+                  stroke: "white",
+                  strokeWidth: 2,
+                  style: { filter: "drop-shadow(0 0 6px rgba(99, 102, 241, 0.5))" },
+                }}
               />
             </RechartsArea>
           </ResponsiveContainer>

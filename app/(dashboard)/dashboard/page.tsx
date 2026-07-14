@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AreaChart } from "@/components/dashboard/AreaChart";
 import { BarChart } from "@/components/dashboard/BarChart";
@@ -34,6 +35,7 @@ function subDays(d: Date, n: number) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [period, setPeriod] = useState("7");
   const to = new Date().toISOString().split("T")[0];
   const from = useMemo(() => subDays(new Date(), parseInt(period)), [period]);
@@ -81,7 +83,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardBanner adminName={user?.nom || user?.email} />
+      <DashboardBanner
+        adminName={user?.nom || user?.email}
+        onlineUsers={stats?.onlineUsers}
+        messagesToday={stats?.messagesPeriod}
+      />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -119,12 +125,12 @@ export default function DashboardPage() {
       {!isError && !showSkeleton && stats && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <StatCard title="Utilisateurs" value={stats.totalUsers} icon={Users} color="#6366f1" subtitle="total" />
-            <StatCard title="En ligne" value={stats.onlineUsers} icon={Activity} color="#22c55e" subtitle="maintenant" />
-            <StatCard title="Bannis" value={stats.bannedUsers} icon={Ban} color="#ef4444" subtitle="total" />
-            <StatCard title="Messages" value={stats.messagesPeriod} icon={MessageSquare} color="#3b82f6" subtitle="cette période" trend={trend(stats.messagesPeriod, analytics?.comparison.messages)} />
-            <StatCard title="Appels" value={stats.callsPeriod} icon={Phone} color="#8b5cf6" subtitle="cette période" trend={trend(stats.callsPeriod, analytics?.comparison.calls)} />
-            <StatCard title="Statuts" value={stats.statusesPeriod} icon={Smile} color="#f59e0b" subtitle="cette période" trend={trend(stats.statusesPeriod, analytics?.comparison.statuses)} />
+            <StatCard title="Utilisateurs" value={stats.totalUsers} icon={Users} color="#6366f1" subtitle="total" onClick={() => router.push("/users")} />
+            <StatCard title="En ligne" value={stats.onlineUsers} icon={Activity} color="#22c55e" subtitle="maintenant" onClick={() => router.push("/users?status=online")} />
+            <StatCard title="Bannis" value={stats.bannedUsers} icon={Ban} color="#ef4444" subtitle="total" onClick={() => router.push("/users?status=banned")} />
+            <StatCard title="Messages" value={stats.messagesPeriod} icon={MessageSquare} color="#3b82f6" subtitle="cette période" trend={trend(stats.messagesPeriod, analytics?.comparison.messages)} onClick={() => router.push("/analytics")} />
+            <StatCard title="Appels" value={stats.callsPeriod} icon={Phone} color="#8b5cf6" subtitle="cette période" trend={trend(stats.callsPeriod, analytics?.comparison.calls)} onClick={() => router.push("/analytics")} />
+            <StatCard title="Statuts" value={stats.statusesPeriod} icon={Smile} color="#f59e0b" subtitle="cette période" trend={trend(stats.statusesPeriod, analytics?.comparison.statuses)} onClick={() => router.push("/analytics")} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

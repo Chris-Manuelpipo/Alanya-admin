@@ -50,7 +50,12 @@ export function BarChart({ data, title, color = "#6366f1" }: BarChartProps) {
                   fontSize: "13px",
                 }}
               />
-              <Bar dataKey="value" fill={color} radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="value"
+                fill={color}
+                radius={[6, 6, 0, 0]}
+                activeBar={{ fill: `${color}cc`, stroke: color, strokeWidth: 2 }}
+              />
             </RechartsBar>
           </ResponsiveContainer>
         </div>

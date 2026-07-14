@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface HeatmapCell {
-  dow: number; // 0 = dimanche … 6 = samedi
-  hour: number; // 0 … 23
+  dow: number;
+  hour: number;
   count: number;
 }
 
@@ -17,6 +17,8 @@ interface HeatmapChartProps {
 const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
 export function HeatmapChart({ data, title }: HeatmapChartProps) {
+  const [hovered, setHovered] = useState<string | null>(null);
+
   const { grid, max } = useMemo(() => {
     const g: Record<string, number> = {};
     let m = 0;
@@ -41,7 +43,6 @@ export function HeatmapChart({ data, title }: HeatmapChartProps) {
       <CardContent>
         <div className="overflow-x-auto">
           <div className="min-w-[640px]">
-            {/* En-tête des heures */}
             <div className="flex pl-10">
               {Array.from({ length: 24 }, (_, h) => (
                 <div
@@ -53,7 +54,6 @@ export function HeatmapChart({ data, title }: HeatmapChartProps) {
               ))}
             </div>
 
-            {/* Lignes : un jour de semaine par ligne */}
             {DAYS.map((day, dow) => (
               <div key={dow} className="flex items-center">
                 <div className="w-10 shrink-0 text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -62,11 +62,19 @@ export function HeatmapChart({ data, title }: HeatmapChartProps) {
                 {Array.from({ length: 24 }, (_, hour) => {
                   const count = grid[`${dow}-${hour}`] || 0;
                   const a = intensity(count);
+                  const key = `${dow}-${hour}`;
+                  const isHovered = hovered === key;
                   return (
                     <div key={hour} className="flex-1 p-[2px]">
                       <div
-                        className="aspect-square w-full rounded-[3px] bg-zinc-100 dark:bg-zinc-800"
+                        className={`aspect-square w-full rounded-[3px] transition-all duration-150 ${
+                          isHovered
+                            ? "scale-125 z-10 ring-2 ring-indigo-400 dark:ring-indigo-500 shadow-md"
+                            : "hover:scale-110"
+                        }`}
                         style={a ? { backgroundColor: `rgba(99, 102, 241, ${a})` } : undefined}
+                        onMouseEnter={() => setHovered(key)}
+                        onMouseLeave={() => setHovered(null)}
                         title={`${day} ${hour}h — ${count.toLocaleString()} messages`}
                       />
                     </div>
@@ -75,7 +83,6 @@ export function HeatmapChart({ data, title }: HeatmapChartProps) {
               </div>
             ))}
 
-            {/* Légende */}
             <div className="flex items-center justify-end gap-2 mt-3 pr-1">
               <span className="text-[10px] text-zinc-400">Moins</span>
               {[0, 0.25, 0.5, 0.75, 1].map((a) => (

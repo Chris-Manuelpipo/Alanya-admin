@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FeedListSkeleton } from "@/components/skeletons";
-import { UserPlus, MessageSquare, Phone, Video, Smile } from "lucide-react";
+import { UserPlus, MessageSquare, Phone, Video, Smile, Inbox } from "lucide-react";
 import { ActivityEntry } from "@/types";
 
 interface ActivityFeedProps {
@@ -35,13 +35,21 @@ export function ActivityFeed({ data, isLoading }: ActivityFeedProps) {
       <CardContent>
         {isLoading ? (
           <FeedListSkeleton count={5} />
+        ) : !data || data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-zinc-400">
+            <Inbox className="h-10 w-10 mb-2 opacity-50" />
+            <p className="text-sm">Aucune activité récente</p>
+          </div>
         ) : (
           <div className="space-y-1">
-            {data?.map((entry) => {
+            {data.map((entry) => {
               const Icon = iconMap[entry.type];
               const colorClass = colorMap[entry.type];
               return (
-                <div key={entry.id} className="flex items-center gap-3 py-2.5">
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                >
                   <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${colorClass}`}>
                     <Icon className="h-4 w-4" />
                   </div>
