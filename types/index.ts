@@ -330,3 +330,30 @@ export interface BroadcastsResponse {
   page: number;
   limit: number;
 }
+
+// ── Admin Profile ──
+
+export interface AdminProfile {
+  alanyaID: number;
+  nom: string;
+  pseudo: string;
+  email: string | null;
+  alanyaPhone: string;
+  avatarUrl: string;
+  typeCompte: number;
+  paysLibelle: string | null;
+  createdAt: string;
+  lastSeen: string;
+}
+
+export interface UpdateProfilePayload {
+  nom?: string;
+  pseudo?: string;
+  email?: string;
+  avatarUrl?: string;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}

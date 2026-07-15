@@ -1,4 +1,4 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, AdminProfile } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
@@ -536,4 +536,39 @@ export async function createBroadcast(data: BroadcastFormData): Promise<Broadcas
   }
   const res = await api.post('/admin/broadcasts', data);
   return res.data as Broadcast;
+}
+
+// ── Admin Profile ──
+
+const mockAdminProfile: AdminProfile = {
+  alanyaID: 42,
+  nom: "Chris Admin",
+  pseudo: "chrisadmin",
+  email: "admin@talky.app",
+  alanyaPhone: "00000000",
+  avatarUrl: "",
+  typeCompte: 2,
+  paysLibelle: "Côte d'Ivoire",
+  createdAt: "2026-01-12T10:00:00Z",
+  lastSeen: new Date().toISOString(),
+};
+
+export async function fetchAdminProfile(): Promise<AdminProfile> {
+  if (USE_MOCK) return mockAdminProfile;
+  const res = await api.get('/admin/me');
+  return res.data as AdminProfile;
+}
+
+export async function updateAdminProfile(data: Partial<AdminProfile>): Promise<AdminProfile> {
+  if (USE_MOCK) {
+    Object.assign(mockAdminProfile, data);
+    return { ...mockAdminProfile };
+  }
+  const res = await api.put('/admin/me', data);
+  return res.data as AdminProfile;
+}
+
+export async function changeAdminPassword(currentPassword: string, newPassword: string): Promise<void> {
+  if (USE_MOCK) return;
+  await api.put('/admin/me/password', { currentPassword, newPassword });
 }
