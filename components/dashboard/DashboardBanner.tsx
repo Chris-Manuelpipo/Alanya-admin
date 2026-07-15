@@ -6,7 +6,6 @@ import { Search, Megaphone, Clock } from "lucide-react";
 
 interface DashboardBannerProps {
   adminName?: string;
-  adminAvatar?: string;
   onlineUsers?: number;
   messagesToday?: number;
 }
@@ -56,18 +55,9 @@ function DateDisplay() {
   return <span className="text-xs text-zinc-400 dark:text-zinc-500 capitalize">{dateStr}</span>;
 }
 
-function getInitials(name?: string): string {
-  if (!name) return "A";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return parts[0].substring(0, 2).toUpperCase();
-}
-
-export function DashboardBanner({ adminName, adminAvatar, onlineUsers = 0 }: DashboardBannerProps) {
+export function DashboardBanner({ adminName, onlineUsers = 0 }: DashboardBannerProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [avatarError, setAvatarError] = useState(false);
-  const showAvatar = adminAvatar && !avatarError;
   const displayName = adminName?.split(" ")[0] || "Admin";
 
   return (
@@ -84,28 +74,8 @@ export function DashboardBanner({ adminName, adminAvatar, onlineUsers = 0 }: Das
 
       {/* Content */}
       <div className="relative z-10 px-6 py-5 sm:px-8 sm:py-6 flex items-center justify-between gap-6 flex-wrap sm:flex-nowrap">
-        {/* Left: Avatar + Greeting + Actions */}
+        {/* Left: Greeting + Actions */}
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          {/* Avatar */}
-          <div
-            className="relative shrink-0 animate-[fadeSlideIn_0.4s_ease-out_both]"
-            style={{ animationDelay: "100ms" }}
-          >
-            <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 opacity-20 blur-sm" />
-            {showAvatar ? (
-              <img
-                src={adminAvatar}
-                alt={displayName}
-                className="relative h-12 w-12 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-zinc-800"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg">
-                <span className="text-sm font-bold text-white">{getInitials(adminName)}</span>
-              </div>
-            )}
-          </div>
-
           {/* Greeting + Actions */}
           <div className="min-w-0 flex-1">
             <div
