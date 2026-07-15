@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { GeoStats } from "@/components/geolocation/GeoStats";
 import { GeoFilterBar } from "@/components/geolocation/GeoFilterBar";
 import { useGeoData } from "@/hooks/useGeoData";
+import { GeolocationPageSkeleton } from "@/components/skeletons";
 import { MapPin } from "lucide-react";
 
 const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
@@ -61,14 +62,7 @@ export default function GeolocationPage() {
         </div>
       )}
 
-      {isLoading && (
-        <div className="h-[600px] rounded-xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-zinc-400">
-            <div className="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">Chargement des données...</span>
-          </div>
-        </div>
-      )}
+      {(isLoading || isFetching) && <GeolocationPageSkeleton />}
 
       {!isError && !isLoading && geoData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

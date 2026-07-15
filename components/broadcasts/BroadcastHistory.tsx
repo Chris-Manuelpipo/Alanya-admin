@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBroadcasts } from "@/hooks/useBroadcasts";
+import { BroadcastHistorySkeleton } from "@/components/skeletons";
 import { Megaphone, Image, Video, FileText, Users, Calendar, Radio } from "lucide-react";
 
 const typeIcons: Record<number, React.ElementType> = {
@@ -29,13 +30,7 @@ export function BroadcastHistory() {
   const { data, isLoading } = useBroadcasts();
 
   if (isLoading) {
-    return (
-      <Card className="border-0 shadow-sm bg-white dark:bg-zinc-900">
-        <CardContent className="p-8 text-center">
-          <div className="h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        </CardContent>
-      </Card>
-    );
+    return <BroadcastHistorySkeleton />;
   }
 
   const broadcasts = data?.items || [];

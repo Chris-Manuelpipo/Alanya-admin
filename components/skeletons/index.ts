@@ -53,3 +53,5 @@ export {
   ReservedPhonesListSectionSkeleton,
   ReservedPhoneSearchSkeleton,
 } from "./reserved-phones-skeleton";
+export { GeolocationPageSkeleton } from "./geolocation-skeleton";
+export { BroadcastHistorySkeleton } from "./broadcast-skeleton";
