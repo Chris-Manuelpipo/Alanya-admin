@@ -33,6 +33,7 @@ const navItems = [
   { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
   { href: "/broadcasts", label: "Broadcasts", icon: Megaphone },
   { href: "/settings", label: "Paramètres", icon: Settings },
+  { href: "/profile", label: "Mon profil", icon: UserCircle },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -131,7 +132,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             {collapsed ? <Menu className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </button>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => router.push("/profile")}
+              className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Mon profil"
+            >
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {user?.nom ? user.nom.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "AD"}
+              </div>
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
