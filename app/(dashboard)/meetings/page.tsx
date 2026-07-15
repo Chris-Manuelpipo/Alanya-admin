@@ -11,6 +11,7 @@ import { RefreshCw, Video, Phone, Clock, Calendar, Users, Trash2, XCircle, Slide
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { FilterBar, FilterDef } from "@/components/dashboard/FilterBar";
+import { PERIOD_OPTIONS } from "@/lib/period";
 
 const MEETING_FILTERS: FilterDef[] = [
   { key: "status", label: "Statut", options: [
@@ -23,6 +24,7 @@ const MEETING_FILTERS: FilterDef[] = [
     { value: "audio", label: "Audio" },
     { value: "video", label: "Vidéo" },
   ] },
+  { key: "period", label: "Période", options: [...PERIOD_OPTIONS] },
   { key: "sort", label: "Trier par", options: [
     { value: "startTime", label: "Date" },
     { value: "duree", label: "Durée" },
@@ -33,7 +35,7 @@ const MEETING_FILTERS: FilterDef[] = [
     { value: "asc", label: "Croissant" },
   ] },
 ];
-const MEETING_DEFAULTS = { status: "", type: "", sort: "startTime", order: "desc" };
+const MEETING_DEFAULTS = { status: "", type: "", period: "", sort: "startTime", order: "desc" };
 
 export default function MeetingsPage() {
   const { data: meetings, isLoading, isFetching, isError, refetch } = useMeetings();

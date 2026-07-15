@@ -17,8 +17,9 @@ export function GeoFilterBar({ period, onPeriodChange, isFetching, onRefresh }: 
         value={period}
         onChange={(e) => onPeriodChange(e.target.value)}
         disabled={isFetching}
-        className="flex h-10 w-32 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="flex h-10 w-44 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
+        <option value="">Toutes les périodes</option>
         <option value="7">7 jours</option>
         <option value="30">30 jours</option>
         <option value="90">90 jours</option>

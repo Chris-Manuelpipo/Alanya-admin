@@ -50,6 +50,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [idPays, setIdPays] = useState("");
+  const [period, setPeriod] = useState("");
   const [sort, setSort] = useState("created_at");
   const [order, setOrder] = useState("desc");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -157,7 +158,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
             <button
-              onClick={() => { setStatus(""); setIdPays(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
+              onClick={() => { setStatus(""); setIdPays(""); setPeriod(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
               className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               Réinitialiser
@@ -182,6 +183,16 @@ export default function UsersPage() {
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Période</label>
+              <select value={period} onChange={(e) => { setPeriod(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <option value="">Toutes</option>
+                <option value="7d">7 jours</option>
+                <option value="30d">30 jours</option>
+                <option value="90d">90 jours</option>
+                <option value="12m">12 mois</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
               <label className="text-xs font-medium text-zinc-500">Trier par</label>
               <select value={sort} onChange={(e) => setSort(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="created_at">Date d&apos;inscription</option>
@@ -201,7 +212,7 @@ export default function UsersPage() {
       )}
 
       {/* Active Filter Badges */}
-      {(status || idPays || sort !== "created_at" || order !== "desc") && !showFilters && (
+      {(status || idPays || period || sort !== "created_at" || order !== "desc") && !showFilters && (
         <div className="flex flex-wrap items-center gap-2">
           {status && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
@@ -215,6 +226,14 @@ export default function UsersPage() {
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
               {idPays === "1" ? "France" : idPays === "2" ? "Côte d'Ivoire" : idPays === "3" ? "Cameroun" : idPays === "4" ? "Sénégal" : idPays === "5" ? "Maroc" : idPays}
               <button onClick={() => { setIdPays(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {period && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              Période: {period === "7d" ? "7 jours" : period === "30d" ? "30 jours" : period === "90d" ? "90 jours" : "12 mois"}
+              <button onClick={() => { setPeriod(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
                 <X className="h-3 w-3" />
               </button>
             </span>

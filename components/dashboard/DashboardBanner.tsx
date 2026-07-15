@@ -62,11 +62,11 @@ export function DashboardBanner({ adminName, onlineUsers = 0 }: DashboardBannerP
 
   return (
     <div
-      className="relative rounded-2xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-sm overflow-hidden animate-[fadeSlideIn_0.5s_ease-out]"
+      className="relative rounded-2xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-sm overflow-hidden animate-[fadeSlideIn_0.5s_ease-out] banner-shimmer-border"
     >
       {/* Glow */}
       <div
-        className="absolute -top-24 -right-16 w-80 h-80 pointer-events-none opacity-70 dark:opacity-100"
+        className="absolute -top-24 -right-16 w-80 h-80 pointer-events-none opacity-70 dark:opacity-100 animate-banner-glow"
         style={{
           background: "radial-gradient(circle, rgba(139,92,246,.15), rgba(168,85,247,.08) 40%, transparent 70%)",
         }}
@@ -124,7 +124,10 @@ export function DashboardBanner({ adminName, onlineUsers = 0 }: DashboardBannerP
               </div>
 
               {/* Annoncer */}
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:from-indigo-600 hover:to-violet-600 transition-all duration-200">
+              <button
+                onClick={() => router.push("/broadcasts")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:from-indigo-600 hover:to-violet-600 transition-all duration-200"
+              >
                 <Megaphone className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Diffuser</span>
               </button>

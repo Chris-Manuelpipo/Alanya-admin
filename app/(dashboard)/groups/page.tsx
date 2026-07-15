@@ -11,6 +11,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { FilterBar, FilterDef } from "@/components/dashboard/FilterBar";
+import { PERIOD_OPTIONS } from "@/lib/period";
 
 const GROUP_FILTERS: FilterDef[] = [
   { key: "status", label: "Statut", options: [
@@ -18,6 +19,7 @@ const GROUP_FILTERS: FilterDef[] = [
     { value: "active", label: "Actifs" },
     { value: "inactive", label: "Inactifs" },
   ] },
+  { key: "period", label: "Période", options: [...PERIOD_OPTIONS] },
   { key: "sort", label: "Trier par", options: [
     { value: "createdAt", label: "Date de création" },
     { value: "groupName", label: "Nom" },
@@ -29,7 +31,7 @@ const GROUP_FILTERS: FilterDef[] = [
     { value: "asc", label: "Croissant" },
   ] },
 ];
-const GROUP_DEFAULTS = { status: "", sort: "createdAt", order: "desc" };
+const GROUP_DEFAULTS = { status: "", period: "", sort: "createdAt", order: "desc" };
 
 export default function GroupsPage() {
   const { data: groups, isLoading, isFetching, isError, refetch } = useGroups();

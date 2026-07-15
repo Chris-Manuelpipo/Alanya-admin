@@ -9,6 +9,7 @@ import { HeatmapChart } from "@/components/dashboard/HeatmapChart";
 import { AnalyticsContentSkeleton } from "@/components/skeletons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Button } from "@/components/ui/button";
+import { periodToRange } from "@/lib/period";
 import {
   MessageSquare,
   Phone,
@@ -24,12 +25,6 @@ import {
   RefreshCw,
   Radio,
 } from "lucide-react";
-
-function subDays(d: Date, n: number) {
-  const r = new Date(d);
-  r.setDate(r.getDate() - n);
-  return r.toISOString().split("T")[0];
-}
 
 function formatDuration(s: number): string {
   if (!s) return "0s";
@@ -56,9 +51,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState("7");
-  const to = new Date().toISOString().split("T")[0];
-  const from = useMemo(() => subDays(new Date(), parseInt(period)), [period]);
+  const [period, setPeriod] = useState("");
+  const { from, to } = useMemo(() => periodToRange(period), [period]);
 
   const { data, isLoading, isFetching, isError, refetch } = useAnalytics(from, to);
 
@@ -143,8 +137,9 @@ export default function AnalyticsPage() {
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
             disabled={isLoading}
-            className="flex h-10 w-32 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex h-10 w-44 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
+            <option value="">Toutes les périodes</option>
             <option value="7">7 jours</option>
             <option value="30">30 jours</option>
             <option value="90">90 jours</option>

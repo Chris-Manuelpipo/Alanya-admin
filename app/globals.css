@@ -108,6 +108,55 @@
     100% { background-position: 0% 50%; }
   }
 
+  @keyframes bannerGlowShift {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+    33% { transform: translate(-20px, 10px) scale(1.05); opacity: 1; }
+    66% { transform: translate(15px, -5px) scale(0.95); opacity: 0.8; }
+    100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  }
+
+  .dark .animate-banner-glow {
+    animation: bannerGlowShift 6s ease-in-out infinite;
+    opacity: 1;
+  }
+
+  @keyframes borderShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .banner-shimmer-border {
+    position: relative;
+  }
+
+  .banner-shimmer-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(139,92,246,0.3) 25%,
+      rgba(168,85,247,0.7) 50%,
+      rgba(139,92,246,0.3) 75%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: borderShimmer 3s linear infinite;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .dark .banner-shimmer-border::after {
+    opacity: 1;
+  }
+
   .skeleton-shimmer {
     position: relative;
     overflow: hidden;

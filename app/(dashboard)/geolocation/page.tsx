@@ -6,6 +6,7 @@ import { GeoStats } from "@/components/geolocation/GeoStats";
 import { GeoFilterBar } from "@/components/geolocation/GeoFilterBar";
 import { useGeoData } from "@/hooks/useGeoData";
 import { GeolocationPageSkeleton } from "@/components/skeletons";
+import { periodToRange } from "@/lib/period";
 import { MapPin } from "lucide-react";
 
 const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
@@ -20,16 +21,9 @@ const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
   ),
 });
 
-function subDays(d: Date, n: number) {
-  const r = new Date(d);
-  r.setDate(r.getDate() - n);
-  return r.toISOString().split("T")[0];
-}
-
 export default function GeolocationPage() {
-  const [period, setPeriod] = useState("7");
-  const to = new Date().toISOString().split("T")[0];
-  const from = useMemo(() => subDays(new Date(), parseInt(period)), [period]);
+  const [period, setPeriod] = useState("");
+  const { from, to } = useMemo(() => periodToRange(period), [period]);
 
   const { data: geoData, isLoading, isFetching, isError, refetch } = useGeoData(from, to);
 

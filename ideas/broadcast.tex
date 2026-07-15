@@ -1,0 +1,368 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\geometry{a4paper, margin=2.5cm}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.95}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{Alanya Admin --- Fonctionnalité Broadcast / Diffusion}
+\author{Plan technique}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Objectif}
+
+Permettre à un administrateur Alanya d'envoyer des messages (texte, image, vidéo) ou de créer des statuts (stories) à tous les utilisateurs ou à un sous-ensemble ciblé. Les messages sont envoyés depuis un compte système « Alanya » avec badge certifié. Les statuts sont visibles dans la section statuts de l'app mobile.
+
+\section{Architecture}
+
+\subsection{Compte Alanya (système)}
+
+Créer un user avec un numéro réservé :
+\begin{itemize}
+    \item \texttt{nom} = « Alanya »
+    \item \texttt{pseudo} = « alanya »
+    \item \texttt{alanyaPhone} = numéro réservé (ex: 0000)
+    \item \texttt{type\_compte} = 0 (apparaît comme user normal côté mobile)
+    \item \texttt{avatar\_url} = logo Alanya
+\end{itemize}
+
+Ce compte est le \texttt{senderID} de tous les broadcasts.
+
+\subsection{Tables SQL}
+
+\subsubsection{Table \texttt{broadcast}}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE broadcast (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  sender_id       INT NOT NULL,       -- FK users (compte Alanya)
+  created_by      INT NOT NULL,       -- FK users (admin qui diffuse)
+  content         TEXT,
+  type            TINYINT DEFAULT 0,  -- 0=text, 1=image, 2=video
+  media_url       VARCHAR(255),
+  target_type     VARCHAR(20) NOT NULL, -- 'all','country','specific'
+  target_criteria JSON,               -- {"idPays":5} ou {"userIds":[1,2,3]}
+  recipient_count INT DEFAULT 0,
+  sent_at         DATETIME NOT NULL,
+  FOREIGN KEY (sender_id) REFERENCES users(alanyaID),
+  FOREIGN KEY (created_by) REFERENCES users(alanyaID)
+);
+\end{lstlisting}
+
+\subsubsection{Table \texttt{broadcast\_recipient}}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE broadcast_recipient (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  broadcast_id    INT NOT NULL,
+  alanya_id       INT NOT NULL,
+  conversation_id BIGINT,
+  message_id      BIGINT,
+  sent_at         DATETIME NOT NULL,
+  FOREIGN KEY (broadcast_id) REFERENCES broadcast(id),
+  FOREIGN KEY (alanya_id) REFERENCES users(alanyaID),
+  FOREIGN KEY (conversation_id) REFERENCES conversation(conversID),
+  FOREIGN KEY (message_id) REFERENCES message(msgID),
+  UNIQUE (broadcast_id, alanya_id)
+);
+\end{lstlisting}
+
+\subsection{Migration}
+\begin{lstlisting}[language=bash]
+migrations/018_broadcast_tables.sql
+\end{lstlisting}
+
+\section{Endpoints API}
+
+\subsection{POST /api/admin/broadcasts --- Créer et envoyer}
+
+\textbf{Middleware:} \texttt{adminAuth}
+
+\textbf{Request body:}
+\begin{lstlisting}[language=JSON]
+{
+  "content": "Message de test",
+  "type": 0,
+  "mediaUrl": null,
+  "targetType": "all",
+  "targetCriteria": {}
+}
+\end{lstlisting}
+
+\textbf{Logique:}
+\begin{enumerate}
+    \item Vérifier admin auth
+    \item Résoudre les destinataires selon \texttt{target\_type} :
+    \begin{itemize}
+        \item \texttt{all} : tous les users non-bannis
+        \item \texttt{country} : users par pays (\texttt{targetCriteria.idPays})
+        \item \texttt{specific} : users spécifiques (\texttt{targetCriteria.userIds})
+    \end{itemize}
+    \item Pour chaque destinataire :
+    \begin{itemize}
+        \item Créer ou réutiliser la conversation 1-1 entre « Alanya » et le user
+        \item Insérer le message dans \texttt{message}
+        \item Mettre à jour \texttt{conversation.lastMessage}
+        \item Incrémenter \texttt{conv\_participants.unreadCount}
+        \item Envoyer FCM push via \texttt{notifyNewMessage()}
+    \end{itemize}
+    \item Enregistrer dans \texttt{broadcast} + \texttt{broadcast\_recipient}
+    \item Retourner le résumé
+\end{enumerate}
+
+\subsection{GET /api/admin/broadcasts --- Historique}
+
+\textbf{Query params:} \texttt{page}, \texttt{limit}
+
+\textbf{Response:}
+\begin{lstlisting}[language=JSON]
+{
+  "items": [...],
+  "total": 42,
+  "page": 1,
+  "limit": 20
+}
+\end{lstlisting}
+
+\subsection{GET /api/admin/broadcasts/:id --- Détails}
+
+Retourne le broadcast + liste des destinataires avec statut d'envoi.
+
+\section{Logique de conversation}
+
+\begin{lstlisting}[language=JavaScript]
+// Trouver ou créer la conversation 1-1
+let conversation = await pool.execute(
+  `SELECT c.conversID FROM conversation c
+   JOIN conv_participants p1 ON p1.conversID = c.conversID
+   JOIN conv_participants p2 ON p2.conversID = c.conversID
+   WHERE c.isGroup = 0
+     AND p1.alanyaID = ? AND p2.alanyaID = ?
+   LIMIT 1`,
+  [alanyaSenderId, recipientId]
+);
+
+if (!conversation.length) {
+  // Créer la conversation
+  const [conv] = await pool.execute(
+    `INSERT INTO conversation (isGroup, lastMessage, lastMessageAt, lastMessageSenderID, lastMessageType)
+     VALUES (0, ?, NOW(), ?, ?)`,
+    [preview, alanyaSenderId, type]
+  );
+  conversationId = conv.insertId;
+
+  // Ajouter les participants
+  await pool.execute(
+    `INSERT INTO conv_participants (conversID, alanyaID) VALUES (?, ?), (?, ?)`,
+    [conversationId, alanyaSenderId, conversationId, recipientId]
+  );
+} else {
+  conversationId = conversation[0].conversID;
+  // Mettre à jour lastMessage
+  await pool.execute(
+    `UPDATE conversation SET lastMessage=?, lastMessageAt=NOW(), lastMessageSenderID=?, lastMessageType=?
+     WHERE conversID=?`,
+    [preview, alanyaSenderId, type, conversationId]
+  );
+}
+
+// Envoyer le message
+const [msg] = await pool.execute(
+  `INSERT INTO message (senderID, conversationID, content, type, status, sendAt, mediaUrl)
+   VALUES (?, ?, ?, ?, 1, NOW(), ?)`,
+  [alanyaSenderId, conversationId, content, type, mediaUrl]
+);
+
+// Incrémenter unreadCount
+await pool.execute(
+  `UPDATE conv_participants SET unreadCount = unreadCount + 1
+   WHERE conversID = ? AND alanyaID != ?`,
+  [conversationId, alanyaSenderId]
+);
+\end{lstlisting}
+
+\section{FCM Push}
+
+Utiliser \texttt{notifyNewMessage()} existant :
+\begin{itemize}
+    \item Type : \texttt{message}
+    \item Title : « Alanya »
+    \item Body : preview du message
+    \item ConversationId : l'ID de la conversation
+    \item CallerId : l'ID du compte Alanya
+\end{itemize}
+
+\section{Statuts (Stories) broadcast}
+
+En plus des messages, l'admin peut créer des statuts visibles par tous les utilisateurs.
+
+\subsection{Logique de création}
+
+\begin{lstlisting}[language=JavaScript]
+// Créer un statut broadcast
+const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+const [statut] = await pool.execute(
+  `INSERT INTO statut (alanyaID, type, text, mediaUrl,
+   backgroundColor, createdAt, expiredAt)
+   VALUES (?, ?, ?, ?, ?, NOW(), ?)`,
+  [alanyaSenderId, type, content, mediaUrl,
+   '#6366f1', expiresAt]
+);
+
+// Notifier tous les utilisateurs ciblés via FCM
+const recipients = await resolveRecipients(targetType, targetCriteria);
+for (const user of recipients) {
+  await notifyNewMessage(user.fcmToken, {
+    type: 'status',
+    title: 'Alanya',
+    body: content,
+    statusId: statut.insertId,
+  });
+}
+\end{lstlisting}
+
+\subsection{Visibilité}
+
+Par défaut, les statuts ne sont visibles que par les contacts mutuels (preferred contacts). Pour un broadcast statut :
+\begin{itemize}
+    \item « Tous » : insérer dans \texttt{statut\_views} pour TOUS les users non-bannis (ou modifier la logique côté mobile)
+    \item « Par pays » : insérer pour les users du pays sélectionné
+\end{itemize}
+
+\textbf{Alternative plus propre :} Ajouter un champ \texttt{isBroadcast TINYINT DEFAULT 0} à la table \texttt{statut}. Côté mobile, si \texttt{isBroadcast = 1}, afficher le statut à tous sans vérifier les preferred contacts.
+
+\subsection{Mobile}
+
+Le statut broadcast apparaît dans la section statuts avec :
+\begin{itemize}
+    \item Avatar = logo Alanya
+    \item Nom = « Alanya »
+    \item Badge certifié
+    \item Même UI qu'un statut normal, pas de différence visible
+\end{itemize}
+
+\section{Mobile --- UI spéciale}
+
+Côté app Talky :
+\begin{itemize}
+    \item Détecter que le sender est le compte Alanya (\texttt{alanyaPhone} réservé)
+    \item Afficher badge certifié (icône vérifiée)
+    \item Photo de profil = logo Alanya
+    \item Page profil : juste « Alanya » + icône certifiée, rien d'autre
+    \item UI spéciale pour le message (fond différent, badge visible)
+\end{itemize}
+
+\section{Frontend Admin --- Composants}
+
+\subsection{Page /broadcasts}
+\begin{itemize}
+    \item Historique des broadcasts envoyés
+    \item Bouton « Nouveau broadcast »
+    \item Colonnes : date, contenu (truncqué), cible, destinataires, statut
+\end{itemize}
+
+\subsection{Dialog Nouveau broadcast}
+\begin{itemize}
+    \item \textbf{Contenu} : textarea + upload image/vidéo
+    \item \textbf{Ciblage} :
+    \begin{itemize}
+        \item Tous les utilisateurs
+        \item Par pays (select dropdown)
+        \item Utilisateurs spécifiques (recherche + sélection multi)
+    \end{itemize}
+    \item \textbf{Aperçu} : mini preview du message
+    \item \textbf{Envoi} : bouton « Diffuser maintenant »
+\end{itemize}
+
+\subsection{Types TypeScript}
+\begin{lstlisting}[language=TypeScript]
+interface Broadcast {
+  id: number;
+  senderId: number;
+  createdBy: number;
+  content: string;
+  type: number;         // 0=text, 1=image, 2=video
+  mediaUrl: string | null;
+  targetType: string;   // 'all' | 'country' | 'specific'
+  targetCriteria: Record<string, unknown>;
+  recipientCount: number;
+  sentAt: string;
+}
+
+interface BroadcastRecipient {
+  id: number;
+  broadcastId: number;
+  alanyaId: number;
+  conversationId: number | null;
+  messageId: number | null;
+  sentAt: string;
+}
+
+interface BroadcastFormData {
+  content: string;
+  type: number;
+  mediaUrl?: string;
+  targetType: 'all' | 'country' | 'specific';
+  targetCriteria: {
+    idPays?: number;
+    userIds?: number[];
+  };
+}
+\end{lstlisting}
+
+\section{Hooks React Query}
+\begin{lstlisting}[language=TypeScript]
+useBroadcasts(params)           // GET /admin/broadcasts
+useBroadcastDetail(id)          // GET /admin/broadcasts/:id
+useCreateBroadcast()            // POST /admin/broadcasts
+\end{lstlisting}
+
+\section{Fichiers à créer}
+\begin{enumerate}
+    \item \texttt{migrations/018\_broadcast\_tables.sql}
+    \item \texttt{src/controllers/admin/broadcast.js}
+    \item \texttt{src/routes/admin.js} (ajouter routes)
+    \item \texttt{app/(dashboard)/broadcasts/page.tsx}
+    \item \texttt{components/broadcasts/BroadcastDialog.tsx}
+    \item \texttt{components/broadcasts/BroadcastHistory.tsx}
+    \item \texttt{components/broadcasts/BroadcastPreview.tsx}
+    \item \texttt{hooks/useBroadcasts.ts}
+    \item \texttt{lib/mock-data.ts} (ajouter fonctions)
+    \item \texttt{types/index.ts} (ajouter types)
+    \item \texttt{app/(dashboard)/layout.tsx} (ajouter nav)
+\end{enumerate}
+
+\end{document}

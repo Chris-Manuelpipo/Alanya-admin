@@ -11,6 +11,7 @@ import { RefreshCw, Image, Video, FileText, Headphones, Search, Download, Trash2
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { MediaItem } from "@/types";
 import { FilterBar, FilterDef } from "@/components/dashboard/FilterBar";
+import { PERIOD_OPTIONS } from "@/lib/period";
 
 const mediaTypeLabels: Record<number, string> = { 1: "Image", 2: "Vidéo", 3: "Audio", 4: "Document" };
 const mediaTypeColors: Record<number, string> = {
@@ -23,7 +24,7 @@ const mediaTypeIcons: Record<number, React.ComponentType<React.SVGProps<SVGSVGEl
   1: Image, 2: Video, 3: Headphones, 4: FileText,
 };
 
-const MEDIA_DEFAULTS = { type: "", sort: "sendAt", order: "desc" };
+const MEDIA_DEFAULTS = { type: "", period: "", sort: "sendAt", order: "desc" };
 
 export default function MediasPage() {
   const [search, setSearch] = useState("");
@@ -49,6 +50,7 @@ export default function MediasPage() {
       { value: "3", label: `Audios (${counts.by[3]})` },
       { value: "4", label: `Documents (${counts.by[4]})` },
     ] },
+    { key: "period", label: "Période", options: [...PERIOD_OPTIONS] },
     { key: "sort", label: "Trier par", options: [
       { value: "sendAt", label: "Date" },
       { value: "mediaName", label: "Nom" },
