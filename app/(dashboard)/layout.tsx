@@ -139,7 +139,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               title="Mon profil"
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.nom}
+                  className="h-8 w-8 rounded-full object-cover shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden"); }}
+                />
+              ) : null}
+              <div className={`h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0 ${user?.avatarUrl ? "hidden" : ""}`}>
                 {user?.nom ? user.nom.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "AD"}
               </div>
             </button>
