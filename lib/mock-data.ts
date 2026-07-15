@@ -1,4 +1,4 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
@@ -412,4 +412,128 @@ export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSe
   if (USE_MOCK) return { ...DEFAULT_SETTINGS, ...patch };
   const res = await api.put('/admin/settings', patch);
   return res.data as AppSettings;
+}
+
+// ── Upload ──
+
+export async function uploadMedia(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<{ url: string; filename: string; originalName: string; mimetype: string; size: number }> {
+  if (USE_MOCK) {
+    // Simulate upload with fake progress
+    for (let i = 0; i <= 100; i += 10) {
+      await new Promise((r) => setTimeout(r, 50));
+      onProgress?.(i);
+    }
+    const ext = file.name.split(".").pop() || "bin";
+    const filename = `mock_${Date.now()}.${ext}`;
+    return {
+      url: URL.createObjectURL(file),
+      filename,
+      originalName: file.name,
+      mimetype: file.type,
+      size: file.size,
+    };
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await api.post("/upload/media", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120_000,
+    onUploadProgress: (e) => {
+      if (e.total) onProgress?.(Math.round((e.loaded * 100) / e.total));
+    },
+  });
+  return res.data;
+}
+
+// ── Broadcasts ──
+
+const mockBroadcasts: Broadcast[] = [
+  {
+    id: 1,
+    senderId: 1,
+    createdBy: 1,
+    content: "Bienvenue sur Alanya ! N'hésitez pas à nous contacter pour toute question.",
+    type: 0,
+    mediaUrl: null,
+    targetType: "all",
+    targetCriteria: {},
+    recipientCount: 76,
+    sentAt: "2026-07-14T10:30:00Z",
+  },
+  {
+    id: 2,
+    senderId: 1,
+    createdBy: 1,
+    content: "Maintenance prévue ce soir de 23h à 2h. Veuillez sauvegarder vos conversations.",
+    type: 0,
+    mediaUrl: null,
+    targetType: "all",
+    targetCriteria: {},
+    recipientCount: 76,
+    sentAt: "2026-07-13T15:00:00Z",
+  },
+  {
+    id: 3,
+    senderId: 1,
+    createdBy: 1,
+    content: "Nouvelle fonctionnalité : les appels groupe sont maintenant disponibles !",
+    type: 1,
+    mediaUrl: "/admin/logo.png",
+    targetType: "country",
+    targetCriteria: { idPays: 5 },
+    recipientCount: 32,
+    sentAt: "2026-07-12T09:15:00Z",
+  },
+  {
+    id: 4,
+    senderId: 1,
+    createdBy: 1,
+    content: "Alanya est maintenant disponible en version 2.0 ! Découvrez les nouvelles fonctionnalités.",
+    type: 3,
+    mediaUrl: null,
+    targetType: "all",
+    targetCriteria: {},
+    recipientCount: 76,
+    sentAt: "2026-07-11T12:00:00Z",
+  },
+];
+
+export async function fetchBroadcasts(params: { page?: number; limit?: number } = {}): Promise<BroadcastsResponse> {
+  if (USE_MOCK) {
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+    const start = (page - 1) * limit;
+    return {
+      items: mockBroadcasts.slice(start, start + limit),
+      total: mockBroadcasts.length,
+      page,
+      limit,
+    };
+  }
+  const res = await api.get('/admin/broadcasts', { params });
+  return res.data as BroadcastsResponse;
+}
+
+export async function createBroadcast(data: BroadcastFormData): Promise<Broadcast> {
+  if (USE_MOCK) {
+    const newBroadcast: Broadcast = {
+      id: mockBroadcasts.length + 1,
+      senderId: 1,
+      createdBy: 1,
+      content: data.content,
+      type: data.type,
+      mediaUrl: data.mediaUrl || null,
+      targetType: data.targetType,
+      targetCriteria: data.targetCriteria,
+      recipientCount: data.targetType === "all" ? 76 : data.targetType === "country" ? 32 : (data.targetCriteria.userIds?.length || 0),
+      sentAt: new Date().toISOString(),
+    };
+    mockBroadcasts.unshift(newBroadcast);
+    return newBroadcast;
+  }
+  const res = await api.post('/admin/broadcasts', data);
+  return res.data as Broadcast;
 }

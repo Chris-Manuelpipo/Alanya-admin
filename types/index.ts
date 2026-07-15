@@ -287,3 +287,46 @@ export interface MediaItem {
   mediaName: string;
   sendAt: string;
 }
+
+// ── Broadcast / Diffusion ──
+
+export interface Broadcast {
+  id: number;
+  senderId: number;
+  createdBy: number;
+  content: string;
+  type: number;         // 0=text, 1=image, 2=video
+  mediaUrl: string | null;
+  targetType: string;   // 'all' | 'country' | 'specific'
+  targetCriteria: Record<string, unknown>;
+  recipientCount: number;
+  sentAt: string;
+}
+
+export interface BroadcastRecipient {
+  id: number;
+  broadcastId: number;
+  alanyaId: number;
+  conversationId: number | null;
+  messageId: number | null;
+  sentAt: string;
+}
+
+export interface BroadcastFormData {
+  content: string;
+  type: number;
+  mediaUrl?: string;
+  targetType: 'all' | 'country' | 'specific';
+  targetCriteria: {
+    idPays?: number;
+    userIds?: number[];
+  };
+  isStatus?: boolean;
+}
+
+export interface BroadcastsResponse {
+  items: Broadcast[];
+  total: number;
+  page: number;
+  limit: number;
+}
