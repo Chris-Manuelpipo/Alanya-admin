@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
 import { formatDisplay } from "@/lib/alanya-phone";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
@@ -42,9 +42,10 @@ const statusOptions = [
 
 export default function UsersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
   const isSuper = useIsSuperAdmin();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("q") || "");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);

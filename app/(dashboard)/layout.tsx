@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
+  Megaphone,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/meetings", label: "Meetings", icon: Video },
   { href: "/medias", label: "Medias", icon: ImageIcon },
   { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
+  { href: "/broadcasts", label: "Broadcasts", icon: Megaphone },
   { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
