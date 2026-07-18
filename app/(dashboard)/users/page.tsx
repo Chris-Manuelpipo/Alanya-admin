@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UsersTableRowsSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
+import { DateRangeInputs } from "@/components/ui/date-range-inputs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Search,
@@ -51,6 +52,8 @@ export default function UsersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [idPays, setIdPays] = useState("");
   const [period, setPeriod] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState("created_at");
   const [order, setOrder] = useState("desc");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -158,7 +161,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
             <button
-              onClick={() => { setStatus(""); setIdPays(""); setPeriod(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
+              onClick={() => { setStatus(""); setIdPays(""); setPeriod(""); setDateFrom(""); setDateTo(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
               className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               Réinitialiser
@@ -191,6 +194,10 @@ export default function UsersPage() {
                 <option value="90d">90 jours</option>
                 <option value="12m">12 mois</option>
               </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-500">Dates</label>
+              <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={(v) => { setDateFrom(v); setPage(1); }} onToChange={(v) => { setDateTo(v); setPage(1); }} />
             </div>
             <div className="space-y-1.5 min-w-[140px]">
               <label className="text-xs font-medium text-zinc-500">Trier par</label>
@@ -478,7 +485,7 @@ function ActionsMenu({ user, canSuper, onView, onBan, onUnban, onRoleUp, onRoleD
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-lg border bg-white dark:bg-zinc-900 shadow-lg py-1 text-sm animate-in fade-in slide-in-from-top-1">
+          <div className="absolute right-0 top-full mt-1 z-20 w-48 overflow-hidden rounded-xl border border-zinc-200/80 bg-white py-1 text-sm text-zinc-800 shadow-[0_12px_40px_-12px_rgba(15,23,42,0.35)] animate-in fade-in zoom-in-95 duration-150 dark:border-zinc-700/80 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.55)]">
             <button onClick={() => { onView(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left">
               <Eye className="h-4 w-4" /> Détails
             </button>

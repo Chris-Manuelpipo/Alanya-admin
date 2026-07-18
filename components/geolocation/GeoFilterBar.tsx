@@ -2,15 +2,20 @@
 
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateRangeInputs } from "@/components/ui/date-range-inputs";
 
 interface GeoFilterBarProps {
   period: string;
   onPeriodChange: (period: string) => void;
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (v: string) => void;
+  onDateToChange: (v: string) => void;
   isFetching: boolean;
   onRefresh: () => void;
 }
 
-export function GeoFilterBar({ period, onPeriodChange, isFetching, onRefresh }: GeoFilterBarProps) {
+export function GeoFilterBar({ period, onPeriodChange, dateFrom, dateTo, onDateFromChange, onDateToChange, isFetching, onRefresh }: GeoFilterBarProps) {
   return (
     <div className="flex items-center gap-3">
       <select
@@ -24,6 +29,7 @@ export function GeoFilterBar({ period, onPeriodChange, isFetching, onRefresh }: 
         <option value="30">30 jours</option>
         <option value="90">90 jours</option>
       </select>
+      <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={onDateFromChange} onToChange={onDateToChange} disabled={isFetching} />
       <Button variant="outline" size="icon" onClick={onRefresh} disabled={isFetching} className="shrink-0">
         <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
       </Button>

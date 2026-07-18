@@ -2,6 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DateRangeInputs } from "@/components/ui/date-range-inputs";
 
 export interface FilterOption {
   value: string;
@@ -24,6 +25,10 @@ interface FilterBarProps {
   defaults: Record<string, string>;
   onChange: (key: string, value: string) => void;
   onReset: () => void;
+  dateFrom?: string;
+  dateTo?: string;
+  onDateFromChange?: (v: string) => void;
+  onDateToChange?: (v: string) => void;
 }
 
 const selectClass =
@@ -39,7 +44,12 @@ export function FilterBar({
   defaults,
   onChange,
   onReset,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
 }: FilterBarProps) {
+  const hasDateFilter = dateFrom !== undefined && dateTo !== undefined && onDateFromChange && onDateToChange;
   const activeFilters = filters.filter((f) => values[f.key] !== defaults[f.key]);
 
   return (
@@ -82,6 +92,12 @@ export function FilterBar({
                 </select>
               </div>
             ))}
+            {hasDateFilter && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-500">Période (dates)</label>
+                <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={onDateFromChange} onToChange={onDateToChange} />
+              </div>
+            )}
           </div>
         </div>
       )}

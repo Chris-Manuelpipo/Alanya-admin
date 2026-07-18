@@ -7,9 +7,14 @@ import "leaflet-defaulticon-compatibility";
 import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON } from "react-leaflet";
 import { useTheme } from "next-themes";
-import { getColorForCount, getRadiusForCount, matchGeoToCountry, fetchWorldGeoJSON } from "@/lib/geo-utils";
+import {
+  getColorForCount,
+  getRadiusForCount,
+  matchGeoFeature,
+  fetchWorldGeoJSON,
+  getFlag,
+} from "@/lib/geo-utils";
 import type { GeoCountryData } from "@/hooks/useGeoData";
-import { getFlag } from "@/lib/geo-utils";
 import type { FeatureCollection } from "geojson";
 import type L from "leaflet";
 
@@ -71,20 +76,34 @@ export default function WorldMap({ countries, maxCount, countryRecord }: WorldMa
             style={() => geoJsonStyle}
             onEachFeature={(feature, layer) => {
               const geoLayer = layer as L.Path;
-              const name =
-                feature.properties?.NAME ||
-                feature.properties?.ADMIN ||
-                feature.properties?.name ||
-                "Unknown";
-              const count = matchGeoToCountry(name, countryRecord);
+              const { count, displayName } = matchGeoFeature(
+                feature.properties as {
+                  NAME?: string;
+                  NAME_FR?: string;
+                  ADMIN?: string;
+                  ISO_A2?: string;
+                  ISO_A3?: string;
+                  name?: string;
+                },
+                countryRecord,
+              );
+              const countColor = count > 0
+                ? (isDark ? "#818cf8" : "#4f46e5")
+                : (isDark ? "#a1a1aa" : "#71717a");
               geoLayer.bindTooltip(
-                `<div style="text-align:center;font-family:system-ui;font-size:13px;font-weight:600">
-                  ${getFlag(name)} ${name}<br/>
-                  <span style="color:${count > 0 ? "#818cf8" : "#71717a"};font-size:12px">
+                `<div style="text-align:center;font-family:system-ui;font-size:13px;font-weight:600;color:inherit">
+                  ${getFlag(displayName)} ${displayName}<br/>
+                  <span style="color:${countColor};font-size:12px;font-weight:500">
                     ${count > 0 ? `${count.toLocaleString()} utilisateurs` : "Aucun utilisateur"}
                   </span>
                 </div>`,
-                { sticky: true, direction: "top" as const, offset: [0, -10] as [number, number] },
+                {
+                  sticky: true,
+                  direction: "top" as const,
+                  offset: [0, -10] as [number, number],
+                  opacity: 1,
+                  className: "alanya-map-tooltip",
+                },
               );
               if (count > 0) {
                 const ratio = count / maxCount;
@@ -110,13 +129,13 @@ export default function WorldMap({ countries, maxCount, countryRecord }: WorldMa
             weight={1.5}
           >
             <Popup>
-              <div className="text-center p-1 min-w-[140px]">
+              <div className="text-center p-1 min-w-[140px] text-zinc-900 dark:text-zinc-100">
                 <div className="text-lg mb-1">{getFlag(country.name)}</div>
                 <div className="font-semibold text-sm">{country.name}</div>
                 <div className="text-indigo-600 dark:text-indigo-400 font-bold text-base">
                   {country.count.toLocaleString()}
                 </div>
-                <div className="text-xs text-zinc-500 mt-0.5">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   {country.percentage}% du total
                 </div>
               </div>

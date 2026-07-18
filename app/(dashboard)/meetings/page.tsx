@@ -46,6 +46,8 @@ export default function MeetingsPage() {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(MEETING_DEFAULTS);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const filtered = useMemo(() => {
     if (!meetings) return [];
@@ -119,6 +121,10 @@ export default function MeetingsPage() {
         defaults={MEETING_DEFAULTS}
         onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
         onReset={() => setValues(MEETING_DEFAULTS)}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
       />
 
       {(isLoading || isFetching) && <MeetingListSkeleton count={5} />}

@@ -381,7 +381,7 @@ export default function UserDetailPage() {
 
       {/* Photo Preview Dialog */}
       <Dialog open={!!photoPreview} onOpenChange={() => setPhotoPreview(null)}>
-        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-transparent shadow-none border-0">
+        <DialogContent showCloseButton={false} className="sm:max-w-lg p-0 overflow-hidden bg-transparent shadow-none border-0">
           <button onClick={() => setPhotoPreview(null)} className="absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors">
             <X className="h-4 w-4" />
           </button>

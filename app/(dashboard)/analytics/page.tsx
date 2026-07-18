@@ -9,6 +9,7 @@ import { HeatmapChart } from "@/components/dashboard/HeatmapChart";
 import { AnalyticsContentSkeleton } from "@/components/skeletons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Button } from "@/components/ui/button";
+import { DateRangeInputs } from "@/components/ui/date-range-inputs";
 import { periodToRange } from "@/lib/period";
 import {
   MessageSquare,
@@ -50,11 +51,18 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-semibold tracking-tight pt-2">{children}</h2>;
 }
 
+function today() { return new Date().toISOString().split("T")[0]; }
+function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split("T")[0]; }
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState("");
+  const [dateFrom, setDateFrom] = useState(daysAgo(7));
+  const [dateTo, setDateTo] = useState(today());
   const { from, to } = useMemo(() => periodToRange(period), [period]);
+  const effectiveFrom = dateFrom || from;
+  const effectiveTo = dateTo || to;
 
-  const { data, isLoading, isFetching, isError, refetch } = useAnalytics(from, to);
+  const { data, isLoading, isFetching, isError, refetch } = useAnalytics(effectiveFrom, effectiveTo);
 
   const messagesTotal = useMemo(
     () => (data ? data.messagesByType.reduce((s, m) => s + m.count, 0) : 0),
@@ -144,6 +152,7 @@ export default function AnalyticsPage() {
             <option value="30">30 jours</option>
             <option value="90">90 jours</option>
           </select>
+          <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} disabled={isLoading} />
           <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} className="shrink-0">
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>

@@ -117,19 +117,146 @@ export function getRadiusForCount(count: number, max: number): number {
   return 4 + ratio * 18;
 }
 
+/** GeoJSON Natural Earth NAME (EN) → libellé FR utilisé dans COUNTRY_GEO / API. */
+const GEOJSON_NAME_TO_FR: Record<string, string> = {
+  Cameroon: "Cameroun",
+  Morocco: "Maroc",
+  Senegal: "Sénégal",
+  Algeria: "Algérie",
+  Tunisia: "Tunisie",
+  Belgium: "Belgique",
+  Switzerland: "Suisse",
+  Benin: "Bénin",
+  Guinea: "Guinée",
+  Chad: "Tchad",
+  "United States of America": "États-Unis",
+  "United Kingdom": "Royaume-Uni",
+  Germany: "Allemagne",
+  Spain: "Espagne",
+  Italy: "Italie",
+  Netherlands: "Pays-Bas",
+  Brazil: "Brésil",
+  Argentina: "Argentine",
+  Haiti: "Haïti",
+  Lebanon: "Liban",
+  Turkey: "Turquie",
+  China: "Chine",
+  India: "Inde",
+  Japan: "Japon",
+  "South Korea": "Corée du Sud",
+  Australia: "Australie",
+  Russia: "Russie",
+  "Dem. Rep. Congo": "République démocratique du Congo",
+  "Democratic Republic of the Congo": "République démocratique du Congo",
+  Congo: "Congo",
+  "Republic of the Congo": "Congo",
+  "Ivory Coast": "Côte d'Ivoire",
+  "Côte d'Ivoire": "Côte d'Ivoire",
+};
+
+function buildIsoIndexes(): {
+  iso2: Record<string, string>;
+  iso3: Record<string, string>;
+} {
+  const iso2: Record<string, string> = {};
+  const iso3: Record<string, string> = {};
+  for (const [key, geo] of Object.entries(COUNTRY_GEO)) {
+    const canonical = geo.name;
+    if (!iso2[geo.iso2] || key === canonical) iso2[geo.iso2] = canonical;
+    if (!iso3[geo.iso3] || key === canonical) iso3[geo.iso3] = canonical;
+  }
+  return { iso2, iso3 };
+}
+
+const ISO_INDEX = buildIsoIndexes();
+
+function isValidIso(code: string | undefined | null): code is string {
+  return !!code && code !== "-99" && /^[A-Z]{2,3}$/i.test(code);
+}
+
+function resolveCanonicalName(candidates: string[]): string | undefined {
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const aliased = GEOJSON_NAME_TO_FR[raw] ?? raw;
+    const geo = getCountryGeo(aliased) ?? getCountryGeo(raw);
+    if (geo) return geo.name;
+    for (const key of Object.keys(COUNTRY_GEO)) {
+      if (key.toLowerCase() === aliased.toLowerCase() || key.toLowerCase() === raw.toLowerCase()) {
+        return COUNTRY_GEO[key].name;
+      }
+    }
+  }
+  return undefined;
+}
+
+export interface GeoFeatureMatch {
+  count: number;
+  /** Libellé FR quand connu, sinon nom GeoJSON. */
+  displayName: string;
+}
+
+/**
+ * Associe une feature GeoJSON (noms EN + ISO) aux compteurs API (libellés FR).
+ * Priorité : ISO_A2 / ISO_A3 → NAME_FR → NAME / ADMIN → alias EN→FR.
+ */
+export function matchGeoFeature(
+  props: {
+    NAME?: string;
+    NAME_FR?: string;
+    ADMIN?: string;
+    ISO_A2?: string;
+    ISO_A3?: string;
+    name?: string;
+  } | null | undefined,
+  countryData: Record<string, number>,
+): GeoFeatureMatch {
+  const nameEn = props?.NAME || props?.ADMIN || props?.name || "Unknown";
+  const nameFr = props?.NAME_FR;
+  const iso2 = props?.ISO_A2?.toUpperCase();
+  const iso3 = props?.ISO_A3?.toUpperCase();
+
+  let canonical: string | undefined;
+  if (isValidIso(iso2)) canonical = ISO_INDEX.iso2[iso2];
+  if (!canonical && isValidIso(iso3)) canonical = ISO_INDEX.iso3[iso3];
+  if (!canonical) {
+    canonical = resolveCanonicalName([nameFr, nameEn].filter(Boolean) as string[]);
+  }
+
+  const displayName = canonical ?? nameFr ?? nameEn;
+
+  if (canonical && countryData[canonical] != null) {
+    return { count: countryData[canonical], displayName: canonical };
+  }
+
+  // Clés API parfois non canoniques (alias COUNTRY_GEO) : agréger via iso / name
+  for (const [key, val] of Object.entries(countryData)) {
+    const geo = getCountryGeo(key);
+    if (!geo) continue;
+    if (canonical && geo.name === canonical) return { count: val, displayName: geo.name };
+    if (isValidIso(iso2) && geo.iso2 === iso2) return { count: val, displayName: geo.name };
+    if (isValidIso(iso3) && geo.iso3 === iso3) return { count: val, displayName: geo.name };
+  }
+
+  if (countryData[nameEn] != null) return { count: countryData[nameEn], displayName: nameEn };
+  if (nameFr && countryData[nameFr] != null) {
+    return { count: countryData[nameFr], displayName: nameFr };
+  }
+  for (const [key, val] of Object.entries(countryData)) {
+    if (key.toLowerCase() === nameEn.toLowerCase()) return { count: val, displayName: key };
+    if (nameFr && key.toLowerCase() === nameFr.toLowerCase()) {
+      return { count: val, displayName: key };
+    }
+  }
+
+  return { count: 0, displayName };
+}
+
+/** @deprecated Préférer matchGeoFeature (ISO + NAME_FR). */
 export function matchGeoToCountry(
   geoJsonName: string,
   countryData: Record<string, number>,
 ): number {
-  if (countryData[geoJsonName]) return countryData[geoJsonName];
-  for (const [key, val] of Object.entries(countryData)) {
-    const geo = COUNTRY_GEO[key];
-    if (geo && geo.name === geoJsonName) return val;
-  }
-  for (const [key, val] of Object.entries(countryData)) {
-    if (key.toLowerCase() === geoJsonName.toLowerCase()) return val;
-  }
-  return 0;
+  return matchGeoFeature({ NAME: geoJsonName }, countryData).count;
 }
 
 export interface RegionStats {
@@ -184,5 +311,10 @@ export const FLAG_EMOJIS: Record<string, string> = {
 };
 
 export function getFlag(pays: string): string {
-  return FLAG_EMOJIS[pays] || "🌍";
+  if (FLAG_EMOJIS[pays]) return FLAG_EMOJIS[pays];
+  const geo = getCountryGeo(pays);
+  if (geo && FLAG_EMOJIS[geo.name]) return FLAG_EMOJIS[geo.name];
+  const aliased = GEOJSON_NAME_TO_FR[pays];
+  if (aliased && FLAG_EMOJIS[aliased]) return FLAG_EMOJIS[aliased];
+  return "🌍";
 }

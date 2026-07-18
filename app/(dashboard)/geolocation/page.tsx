@@ -9,6 +9,9 @@ import { GeolocationPageSkeleton } from "@/components/skeletons";
 import { periodToRange } from "@/lib/period";
 import { MapPin } from "lucide-react";
 
+function today() { return new Date().toISOString().split("T")[0]; }
+function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split("T")[0]; }
+
 const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
   ssr: false,
   loading: () => (
@@ -23,9 +26,13 @@ const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
 
 export default function GeolocationPage() {
   const [period, setPeriod] = useState("");
+  const [dateFrom, setDateFrom] = useState(daysAgo(30));
+  const [dateTo, setDateTo] = useState(today());
   const { from, to } = useMemo(() => periodToRange(period), [period]);
+  const effectiveFrom = dateFrom || from;
+  const effectiveTo = dateTo || to;
 
-  const { data: geoData, isLoading, isFetching, isError, refetch } = useGeoData(from, to);
+  const { data: geoData, isLoading, isFetching, isError, refetch } = useGeoData(effectiveFrom, effectiveTo);
 
   return (
     <div className="space-y-6">
@@ -42,6 +49,10 @@ export default function GeolocationPage() {
         <GeoFilterBar
           period={period}
           onPeriodChange={setPeriod}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
           isFetching={isFetching}
           onRefresh={() => refetch()}
         />

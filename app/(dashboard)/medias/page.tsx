@@ -30,6 +30,8 @@ export default function MediasPage() {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(MEDIA_DEFAULTS);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [preview, setPreview] = useState<MediaItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const { data: mediaItems, isLoading, isFetching, isError, refetch } = useMediaItems();
@@ -139,6 +141,10 @@ export default function MediasPage() {
         defaults={MEDIA_DEFAULTS}
         onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
         onReset={() => setValues(MEDIA_DEFAULTS)}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
       />
 
       {(isLoading || isFetching) && <MediaGridSkeleton count={8} />}

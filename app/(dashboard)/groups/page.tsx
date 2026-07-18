@@ -42,6 +42,8 @@ export default function GroupsPage() {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [values, setValues] = useState<Record<string, string>>(GROUP_DEFAULTS);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const filtered = useMemo(() => {
     if (!groups) return [];
@@ -106,6 +108,10 @@ export default function GroupsPage() {
         defaults={GROUP_DEFAULTS}
         onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
         onReset={() => setValues(GROUP_DEFAULTS)}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
       />
 
       {(isLoading || isFetching) && <GroupGridSkeleton count={6} />}
