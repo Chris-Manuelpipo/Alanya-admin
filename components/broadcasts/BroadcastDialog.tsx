@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -14,15 +15,13 @@ import { Button } from "@/components/ui/button";
 import { BroadcastPreview } from "./BroadcastPreview";
 import { CriteriaBuilder, draftToCriteria, type DraftCondition } from "./CriteriaBuilder";
 import { RecipientEstimate, useRecipientEstimate } from "./RecipientEstimate";
-import { useCreateBroadcast, useBroadcasts, useOfficialSenders } from "@/hooks/useBroadcasts";
+import { useCreateBroadcast, useBroadcasts, useOfficialAccount } from "@/hooks/useBroadcasts";
 import { useToast } from "@/components/ui/toast";
 import { Megaphone, Loader2, FileText, Image, Video, Radio, AlertTriangle } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import type { BroadcastFormData } from "@/types";
 import { formatCriteriaSummary } from "@/lib/criteria-labels";
 import { useCountries } from "@/hooks/useCountries";
-import { useQuery } from "@tanstack/react-query";
-import { fetchStats } from "@/lib/mock-data";
 
 interface BroadcastDialogProps {
   open: boolean;
@@ -45,19 +44,13 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
   const { addToast } = useToast();
   const createMutation = useCreateBroadcast();
   const { refetch } = useBroadcasts();
-  const { data: senders, isLoading: sendersLoading } = useOfficialSenders();
+  const { data: official, isLoading: officialLoading } = useOfficialAccount();
   const { data: countries } = useCountries();
-  const { data: stats } = useQuery({
-    queryKey: ["admin-stats-broadcast"],
-    queryFn: () => fetchStats(),
-    staleTime: 60_000,
-  });
 
   const [clientId, setClientId] = useState(newClientId);
   const [content, setContent] = useState("");
   const [type, setType] = useState(0);
   const [mediaUrl, setMediaUrl] = useState("");
-  const [senderId, setSenderId] = useState<number | "">("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [criteriaDrafts, setCriteriaDrafts] = useState<DraftCondition[]>([]);
   const [confirmStep, setConfirmStep] = useState(false);
@@ -75,19 +68,13 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
     }
   }, [open]);
 
-  useEffect(() => {
-    if (senders?.length && senderId === "") {
-      setSenderId(senders[0].alanyaID);
-    }
-  }, [senders, senderId]);
-
   const criteriaSummary = formatCriteriaSummary(criteria, {
     countryName: (id) => countries?.find((c) => c.idPays === id)?.libelle,
   });
 
   const canSend =
     content.trim().length > 0 &&
-    senderId !== "" &&
+    official != null &&
     !createMutation.isPending &&
     !estimateLoading &&
     estimatedCount != null;
@@ -101,8 +88,6 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
     setConfirmStep(false);
     setEstimateMismatch(null);
     setClientId(newClientId());
-    if (senders?.length) setSenderId(senders[0].alanyaID);
-    else setSenderId("");
   }
 
   function handleSendClick() {
@@ -118,7 +103,7 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
     if (!canSend && confirmedCount == null) return;
 
     const data: BroadcastFormData = {
-      senderId: Number(senderId),
+      senderId: Number(official!.alanyaID),
       content: content.trim(),
       type: isStatut ? 0 : type,
       mediaUrl: mediaUrl || undefined,
@@ -242,22 +227,28 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
 
               <div className="space-y-2">
                 <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">Expéditeur</label>
-                {sendersLoading ? (
+                {officialLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-                ) : senders?.length ? (
-                  <select
-                    value={senderId}
-                    onChange={(e) => setSenderId(Number(e.target.value))}
-                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
-                  >
-                    {senders.map((s) => (
-                      <option key={s.alanyaID} value={s.alanyaID}>
-                        {s.nom} (@{s.pseudo})
-                      </option>
-                    ))}
-                  </select>
+                ) : official ? (
+                  // Il n'y a qu'une voix : on l'affiche, on ne la choisit pas.
+                  <div className="flex items-center gap-3 rounded-lg border border-input bg-muted/40 px-3 py-2">
+                    {official.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={official.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+                    ) : null}
+                    <span className="text-sm font-medium">{official.nom}</span>
+                    <span className="text-xs text-zinc-500">Compte officiel</span>
+                  </div>
                 ) : (
-                  <p className="text-xs text-red-500">Aucun compte officiel disponible.</p>
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950">
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      Aucun compte officiel n&rsquo;existe encore. Créez-le depuis{" "}
+                      <Link href="/users/new" className="underline font-medium">
+                        Utilisateurs → Créer un utilisateur
+                      </Link>{" "}
+                      avant de diffuser.
+                    </p>
+                  </div>
                 )}
               </div>
 

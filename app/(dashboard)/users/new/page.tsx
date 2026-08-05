@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCreateUser, useReservedAlanyaPhones, useCheckAssignablePhone } from "@/hooks/useUsers";
+import { useOfficialAccount, useCreateOfficialAccount } from "@/hooks/useBroadcasts";
 import { ReservedPhoneSearchSkeleton, SelectFieldSkeleton } from "@/components/skeletons";
 import { useCountries } from "@/hooks/useCountries";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
@@ -19,6 +21,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import type { CreateUserPayload } from "@/types";
 
 function randomPassword(length = 10): string {
@@ -42,6 +53,14 @@ export default function NewUserPage() {
   const [idPays, setIdPays] = useState(10);
   const [avatarGender, setAvatarGender] = useState<"male" | "female">("male");
   const [typeCompte, setTypeCompte] = useState(0);
+  const [accountType, setAccountType] = useState(0);
+  const [confirmOfficial, setConfirmOfficial] = useState(false);
+
+  // Le compte officiel n'a rien à saisir : le formulaire disparaît au profit
+  // d'une explication et d'une confirmation.
+  const isOfficial = accountType === 2;
+  const { data: official, isLoading: officialLoading } = useOfficialAccount();
+  const officialMutation = useCreateOfficialAccount();
   const [selectedReservedPhone, setSelectedReservedPhone] = useState("");
   const [reservedSearch, setReservedSearch] = useState("");
   const [debouncedReservedSearch, setDebouncedReservedSearch] = useState("");
@@ -94,8 +113,31 @@ export default function NewUserPage() {
     setManualPhone(formatLiveInput(val));
   }
 
+  async function createOfficial() {
+    try {
+      const user = await officialMutation.mutateAsync();
+      addToast({ title: "Compte officiel créé", description: `${user.nom} peut désormais diffuser` });
+      router.push(`/users/${user.alanyaID}`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || "Erreur création";
+      addToast({ title: "Échec", description: msg, variant: "error" });
+    } finally {
+      setConfirmOfficial(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Création irréversible et unique : on demande confirmation avant, jamais
+    // au retour d'une erreur serveur.
+    if (isOfficial) {
+      if (official) return;
+      setConfirmOfficial(true);
+      return;
+    }
+
     if (!nom.trim() || !pseudo.trim() || !password) {
       addToast({ title: "Champs requis", description: "Nom, pseudo et mot de passe obligatoires", variant: "error" });
       return;
@@ -132,6 +174,7 @@ export default function NewUserPage() {
     }
 
     if (isSuper) payload.type_compte = typeCompte;
+    if (accountType !== 0) payload.account_type = accountType;
 
     try {
       const user = await createMutation.mutateAsync(payload);
@@ -158,6 +201,58 @@ export default function NewUserPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Genre de compte</label>
+              <select
+                className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                value={accountType}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  setAccountType(next);
+                  // Les deux axes sont exclusifs : un compte public ne doit pas
+                  // ouvrir le back-office.
+                  if (next !== 0) setTypeCompte(0);
+                }}
+              >
+                <option value={0}>Personnel</option>
+                <option value={1}>Business</option>
+                <option value={2}>Officiel</option>
+              </select>
+              <p className="mt-1 text-xs text-zinc-500">
+                Ce choix commande le reste du formulaire.
+              </p>
+            </div>
+
+            {isOfficial ? (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                    Ce compte est la voix de l&rsquo;application.
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-300">
+                    <li>Son nom sera <strong>Alanya</strong> et sa photo le logo Alanya.</li>
+                    <li>Il recevra le numéro réservé <strong>000</strong>.</li>
+                    <li>Il sert <strong>uniquement aux diffusions</strong> : personne ne peut lui répondre, l&rsquo;appeler, l&rsquo;ajouter à un groupe ni le trouver dans la recherche.</li>
+                    <li>Aucune connexion n&rsquo;est possible : ni mot de passe, ni e-mail, ni code de récupération.</li>
+                    <li>Il ne peut en exister qu&rsquo;<strong>un seul</strong>.</li>
+                  </ul>
+                </div>
+
+                {officialLoading ? (
+                  <p className="text-sm text-zinc-500">Vérification…</p>
+                ) : official ? (
+                  <div className="rounded-lg border bg-muted/40 p-4">
+                    <p className="text-sm">
+                      Le compte officiel existe déjà.{" "}
+                      <Link href={`/users/${official.alanyaID}`} className="underline font-medium">
+                        Voir sa fiche
+                      </Link>
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Nom *</label>
@@ -363,8 +458,9 @@ export default function NewUserPage() {
               <div>
                 <label className="text-sm font-medium">Rôle</label>
                 <select
-                  className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                  className="w-full rounded-md border px-3 py-2 text-sm bg-background disabled:opacity-50"
                   value={typeCompte}
+                  disabled={accountType !== 0}
                   onChange={(e) => setTypeCompte(Number(e.target.value))}
                 >
                   <option value={0}>Utilisateur</option>
@@ -374,12 +470,45 @@ export default function NewUserPage() {
               </div>
             )}
 
-            <Button type="submit" disabled={createMutation.isPending} className="w-full">
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer le compte"}
+              </>
+            )}
+
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || officialMutation.isPending || (isOfficial && (officialLoading || !!official))}
+              className="w-full"
+            >
+              {createMutation.isPending || officialMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isOfficial ? (
+                "Créer le compte officiel"
+              ) : (
+                "Créer le compte"
+              )}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      <Dialog open={confirmOfficial} onOpenChange={setConfirmOfficial}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer le compte officiel Alanya ?</DialogTitle>
+            <DialogDescription>
+              Il ne pourra en exister qu&rsquo;un seul, et il servira uniquement à diffuser
+              des annonces. Personne ne pourra lui répondre ni s&rsquo;y connecter.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Annuler</Button>
+            </DialogClose>
+            <Button onClick={createOfficial} disabled={officialMutation.isPending}>
+              {officialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

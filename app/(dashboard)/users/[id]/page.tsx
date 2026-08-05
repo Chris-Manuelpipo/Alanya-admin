@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
-import { useBanUser, useUnbanUser, useSetUserRole, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
+import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { useIsSuperAdmin, useIsAdmin } from "@/hooks/useAdminUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +48,12 @@ export default function UserDetailPage() {
   const roleMutation = useSetUserRole();
   const deleteMutation = useDeleteUser();
   const phoneMutation = useUpdateUserPhone();
+  const socleMutation = useSetUserSocle();
+
+  // `null` = « non touché » : la valeur affichée reste celle du serveur tant que
+  // l'administrateur n'a rien changé, sans effet de bord de synchronisation.
+  const [socleType, setSocleType] = useState<number | null>(null);
+  const [socleVerif, setSocleVerif] = useState<number | null>(null);
 
   function refreshDetail() {
     queryClient.invalidateQueries({ queryKey: ["admin-user-detail"] });
@@ -222,6 +228,105 @@ export default function UserDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {isSuper && (() => {
+            const currentType = socleType ?? user.accountType ?? 0;
+            const currentVerif = socleVerif ?? user.verificationStatus ?? 0;
+            const isAdminAccount = (user.typeCompte ?? 0) >= 1;
+            const dirty = socleType !== null || socleVerif !== null;
+
+            async function saveSocle() {
+              try {
+                await socleMutation.mutateAsync({
+                  id: user!.alanyaID,
+                  payload: { account_type: currentType, verification_status: currentVerif },
+                });
+                setSocleType(null);
+                setSocleVerif(null);
+                refreshDetail();
+                addToast({ title: "Socle mis à jour" });
+              } catch (err: unknown) {
+                const msg =
+                  (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+                  "Échec de la mise à jour";
+                addToast({ title: "Échec", description: msg, variant: "error" });
+              }
+            }
+
+            return (
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold">Socle de compte</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1">
+                    <label htmlFor="socle-genre" className="text-xs font-medium text-zinc-500">
+                      Genre de compte
+                    </label>
+                    <select
+                      id="socle-genre"
+                      className="w-full rounded-md border px-3 py-2 text-sm bg-background disabled:opacity-50"
+                      value={currentType}
+                      disabled={isAdminAccount}
+                      onChange={(e) => setSocleType(Number(e.target.value))}
+                    >
+                      {Object.entries(accountTypeLabels)
+                        // « Officiel » n'est proposé que si le compte l'est déjà :
+                        // ce genre se crée depuis « Créer un utilisateur », il ne
+                        // se promeut pas. Le serveur refuse d'ailleurs en 409.
+                        .filter(([v]) => Number(v) !== 2 || currentType === 2)
+                        .map(([v, label]) => (
+                          <option key={v} value={v}>{label}</option>
+                        ))}
+                    </select>
+                    {currentType === 2 && (
+                      <p className="text-xs text-zinc-500">
+                        Repasser ce compte en personnel ou business le prive de la
+                        diffusion et lui retire le logo Alanya.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label htmlFor="socle-verif" className="text-xs font-medium text-zinc-500">
+                      État de vérification
+                    </label>
+                    <select
+                      id="socle-verif"
+                      className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                      value={currentVerif}
+                      onChange={(e) => setSocleVerif(Number(e.target.value))}
+                    >
+                      {Object.entries(verificationLabels).map(([v, label]) => (
+                        <option key={v} value={v}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {isAdminAccount && (
+                    <p className="text-xs text-zinc-500">
+                      Ce compte a des droits d&apos;administration : il ne peut pas recevoir de genre
+                      business ou officiel. Rétrogradez-le d&apos;abord.
+                    </p>
+                  )}
+                  {currentType === 2 && (
+                    <p className="text-xs text-zinc-500">
+                      Le logo Alanya sera appliqué comme photo de profil. Ce compte pourra diffuser
+                      des annonces, et personne ne pourra lui répondre.
+                    </p>
+                  )}
+
+                  <Button
+                    className="w-full"
+                    disabled={!dirty || socleMutation.isPending}
+                    onClick={saveSocle}
+                  >
+                    {socleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enregistrer"}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Activity + Logins */}

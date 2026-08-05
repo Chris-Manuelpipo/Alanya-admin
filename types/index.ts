@@ -92,6 +92,15 @@ export interface CreateUserPayload {
   idPays?: number;
   avatarGender?: 'male' | 'female';
   type_compte?: number;
+  /** Genre de compte : 0 personnel, 1 business, 2 officiel. */
+  account_type?: number;
+}
+
+/** Socle de compte — les deux axes pilotés depuis la fiche utilisateur. */
+export interface SetUserSoclePayload {
+  account_type?: number;
+  verification_status?: number;
+  verified_until?: string | null;
 }
 
 export interface ReservedAlanyaPhone {

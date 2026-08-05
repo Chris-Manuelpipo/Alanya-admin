@@ -4,7 +4,8 @@ import {
   fetchBroadcast,
   createBroadcast,
   estimateBroadcast,
-  fetchOfficialSenders,
+  fetchOfficialAccount,
+  createOfficialAccount,
   fetchVilles,
   cancelScheduledBroadcast,
 } from '@/lib/mock-data';
@@ -53,11 +54,23 @@ export function useEstimateBroadcast() {
   });
 }
 
-export function useOfficialSenders() {
+/** Le compte officiel, ou null s'il n'a pas encore été créé. */
+export function useOfficialAccount() {
   return useQuery({
-    queryKey: ['admin-official-senders'],
-    queryFn: fetchOfficialSenders,
+    queryKey: ['admin-official-account'],
+    queryFn: fetchOfficialAccount,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateOfficialAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createOfficialAccount,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-official-account'] });
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+    },
   });
 }
 

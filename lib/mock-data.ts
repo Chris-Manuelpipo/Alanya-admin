@@ -151,8 +151,22 @@ export async function createUser(payload: import('@/types').CreateUserPayload): 
     idPays: payload.idPays,
     avatarGender: payload.avatarGender,
     type_compte: payload.type_compte,
+    account_type: payload.account_type,
   });
   return res.data;
+}
+
+/**
+ * Socle de compte. Réservé au super-admin côté serveur, qui refuse en 409
+ * de donner un genre business/officiel à un compte disposant de droits
+ * d'administration.
+ */
+export async function setUserSocle(
+  id: number,
+  payload: import('@/types').SetUserSoclePayload,
+): Promise<void> {
+  if (USE_MOCK) return;
+  await api.put(`/admin/users/${id}/socle`, payload);
 }
 
 export async function updateUserPhone(id: number, alanyaPhone: string): Promise<void> {
@@ -485,11 +499,20 @@ export async function fetchVilles(idPays: number, search = ''): Promise<Ville[]>
   return (res.data?.items || []) as Ville[];
 }
 
-export async function fetchOfficialSenders(): Promise<import('@/types').User[]> {
-  const res = await api.get('/admin/users', {
-    params: { account_type: 2, limit: 50, sort: 'nom', order: 'asc' },
-  });
-  return (res.data?.items || []) as import('@/types').User[];
+/**
+ * Le compte officiel est unique : on lit l'unique, on ne liste pas.
+ * Renvoie null tant qu'il n'a pas été créé — les écrans s'en servent pour
+ * afficher un état vide plutôt qu'un formulaire qui échouerait à l'envoi.
+ */
+export async function fetchOfficialAccount(): Promise<import('@/types').User | null> {
+  const res = await api.get('/admin/official-account');
+  return (res.data || null) as import('@/types').User | null;
+}
+
+/** Création sans aucune saisie : l'identité est imposée par le serveur. */
+export async function createOfficialAccount(): Promise<import('@/types').User> {
+  const res = await api.post('/admin/official-account');
+  return res.data as import('@/types').User;
 }
 
 // ── Admin Profile ──

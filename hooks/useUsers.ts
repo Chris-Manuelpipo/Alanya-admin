@@ -4,6 +4,7 @@ import {
   banUser,
   unbanUser,
   setUserRole,
+  setUserSocle,
   deleteUser,
   createUser,
   updateUserPhone,
@@ -12,7 +13,7 @@ import {
   removeReservedAlanyaPhone,
   checkAssignablePhone,
 } from '@/lib/mock-data';
-import type { CreateUserPayload, ReservedAlanyaPhonesParams } from '@/types';
+import type { CreateUserPayload, ReservedAlanyaPhonesParams, SetUserSoclePayload } from '@/types';
 
 interface UsersParams {
   search?: string;
@@ -54,6 +55,21 @@ export function useSetUserRole() {
   return useMutation({
     mutationFn: ({ id, typeCompte }: { id: number; typeCompte: number }) => setUserRole(id, typeCompte),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+}
+
+export function useSetUserSocle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: SetUserSoclePayload }) =>
+      setUserSocle(id, payload),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      qc.invalidateQueries({ queryKey: ['admin-user', id] });
+      // Une révocation change le compte officiel : le composeur de diffusion
+      // et son état vide en dépendent.
+      qc.invalidateQueries({ queryKey: ['admin-official-account'] });
+    },
   });
 }
 
