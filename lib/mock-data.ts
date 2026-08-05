@@ -7,6 +7,7 @@ import { mockMeetings } from '@/mock/meetings';
 import { mockMediaItems } from '@/mock/medias';
 import { mockCountries } from '@/mock/countries';
 import { api } from './api';
+import { toBroadcastApiPayload } from '@/lib/broadcast-payload';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
@@ -486,7 +487,7 @@ export async function estimateBroadcast(criteria: import('@/types').BroadcastCri
 }
 
 export async function createBroadcast(data: BroadcastFormData): Promise<Broadcast | { scheduled: true; clientId: string; scheduledAt: string; estimate: number }> {
-  const res = await api.post('/admin/broadcasts', data);
+  const res = await api.post('/admin/broadcasts', toBroadcastApiPayload(data));
   return res.data;
 }
 

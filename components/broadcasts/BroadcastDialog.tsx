@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Dialog,
@@ -19,7 +19,10 @@ import { useCreateBroadcast, useBroadcasts, useOfficialAccount } from "@/hooks/u
 import { useToast } from "@/components/ui/toast";
 import { Megaphone, Loader2, FileText, Image, Video, Radio, AlertTriangle } from "lucide-react";
 import { FileUpload } from "@/components/ui/file-upload";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
+import { insertAtCursor } from "@/lib/insert-at-cursor";
 import type { BroadcastFormData } from "@/types";
+import { statutMediaType } from "@/lib/broadcast-payload";
 import { formatCriteriaSummary } from "@/lib/criteria-labels";
 import { useCountries } from "@/hooks/useCountries";
 
@@ -55,6 +58,7 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
   const [criteriaDrafts, setCriteriaDrafts] = useState<DraftCondition[]>([]);
   const [confirmStep, setConfirmStep] = useState(false);
   const [estimateMismatch, setEstimateMismatch] = useState<number | null>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const isStatut = type === 3;
   const criteria = useMemo(() => draftToCriteria(criteriaDrafts), [criteriaDrafts]);
@@ -78,6 +82,22 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
     !createMutation.isPending &&
     !estimateLoading &&
     estimatedCount != null;
+
+  function insertEmoji(emoji: string) {
+    const el = contentRef.current;
+    if (!el) {
+      setContent((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? content.length;
+    const end = el.selectionEnd ?? content.length;
+    const { next, cursor } = insertAtCursor(content, emoji, start, end);
+    setContent(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    });
+  }
 
   function resetForm() {
     setContent("");
@@ -105,10 +125,11 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
     const data: BroadcastFormData = {
       senderId: Number(official!.alanyaID),
       content: content.trim(),
-      type: isStatut ? 0 : type,
+      type: isStatut ? statutMediaType(mediaUrl) : type,
       mediaUrl: mediaUrl || undefined,
       criteria,
       clientId,
+      kind: isStatut ? 1 : 0,
       isStatus: isStatut,
       scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
       confirmedEstimate: confirmedCount ?? estimatedCount ?? undefined,
@@ -253,10 +274,14 @@ export function BroadcastDialog({ open, onOpenChange }: BroadcastDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  {isStatut ? "Contenu du statut" : "Contenu"}
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    {isStatut ? "Contenu du statut" : "Contenu"}
+                  </label>
+                  <EmojiPicker onSelect={insertEmoji} disabled={createMutation.isPending} />
+                </div>
                 <textarea
+                  ref={contentRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={isStatut ? "Votre statut…" : "Votre message…"}

@@ -391,6 +391,7 @@ export interface BroadcastFormData {
   mediaUrl?: string;
   criteria: BroadcastCriteria;
   clientId: string;
+  kind?: number;
   isStatus?: boolean;
   scheduledAt?: string;
   confirmedEstimate?: number;
