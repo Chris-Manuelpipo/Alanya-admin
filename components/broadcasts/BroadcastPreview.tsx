@@ -5,7 +5,7 @@ interface BroadcastPreviewProps {
   content: string;
   type: number;
   mediaUrl?: string;
-  targetType: string;
+  criteriaSummary?: string;
   isStatus?: boolean;
 }
 
@@ -15,13 +15,8 @@ const typeLabels: Record<number, { label: string; icon: React.ElementType }> = {
   2: { label: "Vidéo", icon: Video },
 };
 
-const targetLabels: Record<string, string> = {
-  all: "Tous les utilisateurs",
-  country: "Par pays",
-  specific: "Utilisateurs spécifiques",
-};
 
-export function BroadcastPreview({ content, type, mediaUrl, targetType, isStatus }: BroadcastPreviewProps) {
+export function BroadcastPreview({ content, type, mediaUrl, criteriaSummary, isStatus }: BroadcastPreviewProps) {
   const typeInfo = typeLabels[type] || typeLabels[0];
   const TypeIcon = typeInfo.icon;
 
@@ -58,7 +53,7 @@ export function BroadcastPreview({ content, type, mediaUrl, targetType, isStatus
           {isStatus ? "Statut" : typeInfo.label}
         </Badge>
         <Badge variant="outline" className="text-xs">
-          {targetLabels[targetType]}
+          {criteriaSummary || "Tous les utilisateurs"}
         </Badge>
       </div>
     </div>

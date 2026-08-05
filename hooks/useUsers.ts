@@ -20,6 +20,7 @@ interface UsersParams {
   page?: number;
   limit?: number;
   idPays?: string;
+  accountType?: string;
   sort?: string;
   order?: string;
 }

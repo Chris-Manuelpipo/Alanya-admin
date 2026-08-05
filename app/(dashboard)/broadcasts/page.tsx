@@ -13,9 +13,9 @@ export default function BroadcastsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Broadcasts</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Diffusions</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Envoyez des messages à vos utilisateurs
+            Composer une diffusion et savoir qui la recevra
           </p>
         </div>
         <Button
@@ -23,7 +23,7 @@ export default function BroadcastsPage() {
           className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-sm"
         >
           <Megaphone className="h-4 w-4 mr-2" />
-          Nouveau broadcast
+          Nouvelle diffusion
         </Button>
       </div>
 

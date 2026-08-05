@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\geometry{a4paper, margin=2.5cm}
+
+\title{Alanya Admin --- Tâches restantes}
+\author{Équipe développement}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\section{Backend Broadcast}
+\label{sec:broadcast}
+
+\begin{itemize}[leftmargin=*, labelsep=0.5em]
+  \item[\textbullet] Créer la table \texttt{broadcasts} (id, type, titre, message, mediaUrl, senderAdminId, status, sentAt, createdAt)
+  \item[\textbullet] Créer la table \texttt{broadcast\_recipients} (id, broadcastId, userId, readAt, deliveredAt)
+  \item[\textbullet] Route \texttt{POST /api/broadcasts} --- enregistrer + envoyer via Socket.IO (\texttt{admin:broadcast})
+  \item[\textbullet] Route \texttt{GET /api/broadcasts} --- historique avec pagination
+  \item[\textbullet] Route \texttt{GET /api/broadcasts/:id/stats} --- nombre de lectures / livraisons
+  \item[\textbullet] Intégrer Firebase FCM pour push notification broadcast
+\end{itemize}
+
+% ============================================================
+\section{Filtres backend (dates from/to)}
+\label{sec:filters}
+
+\begin{itemize}[leftmargin=*, labelsep=0.5em]
+  \item[\textbullet] Géolocalisation : endpoint \texttt{/api/admin/geo-data} --- accepter \texttt{from} / \texttt{to}
+  \item[\textbullet] Analytics : endpoint \texttt{/api/admin/analytics} --- accepter \texttt{from} / \texttt{to}
+  \item[\textbullet] Réunions : endpoint \texttt{/api/admin/meetings} --- filtrer par date de début/fin
+  \item[\textbullet] Médias : endpoint \texttt{/api/admin/medias} --- filtrer par \texttt{sendAt}
+\end{itemize}
+
+% ============================================================
+\section{Lien Broadcast $\leftrightarrow$ Frontend}
+\label{sec:broadcast-link}
+
+\begin{itemize}[leftmargin=*, labelsep=0.5em]
+  \item[\textbullet] Bouton « Diffuser » dans le DashboardBanner $\rightarrow$ ouvrir le BroadcastDialog
+  \item[\textbullet] Connecter BroadcastDialog à l'API \texttt{POST /api/broadcasts}
+  \item[\textbullet] Connecter BroadcastHistory à l'API \texttt{GET /api/broadcasts}
+  \item[\textbullet] Afficher les stats (reads / delivered) dans l'historique
+\end{itemize}
+
+% ============================================================
+\section{Améliorations secondaires}
+\label{sec:improvements}
+
+\begin{itemize}[leftmargin=*, labelsep=0.5em]
+  \item[\textbullet] Admin profil : avatar upload côté backend (\texttt{PUT /api/admin/me})
+  \item[\textbullet] Notification Socket.IO quand un super-admin change son mot de passe (vérifier réception)
+  \item[\textbullet] Pagination côté backend pour users, groups, meetings, medias
+\end{itemize}
+
+\end{document}

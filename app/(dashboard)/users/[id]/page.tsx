@@ -22,6 +22,10 @@ import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartph
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const roleLabels: Record<number, string> = { 0: "Utilisateur", 1: "Admin", 2: "Super Admin" };
+const accountTypeLabels: Record<number, string> = { 0: "Personnel", 1: "Business", 2: "Officiel" };
+const verificationLabels: Record<number, string> = {
+  0: "Aucune", 1: "En attente", 2: "Vérifié", 3: "Refusé", 4: "Révoqué", 5: "Expiré",
+};
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -96,10 +100,20 @@ export default function UserDetailPage() {
               </button>
               <h2 className="text-xl font-bold">{user.nom}</h2>
               <p className="text-sm text-zinc-500">@{user.pseudo}</p>
-              <div className="mt-4 flex justify-center gap-2">
+              <div className="mt-4 flex justify-center gap-2 flex-wrap">
                 <Badge className={user.isOnline ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-0" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border-0"}>
                   {user.isOnline ? "En ligne" : "Hors ligne"}
                 </Badge>
+                {(user.accountType ?? 0) > 0 && (
+                  <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300 border-0">
+                    {accountTypeLabels[user.accountType ?? 0]}
+                  </Badge>
+                )}
+                {(user.verificationStatus ?? 0) === 2 && (
+                  <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border-0">
+                    Vérifié
+                  </Badge>
+                )}
                 {user.exclus && <Badge variant="destructive">Banni</Badge>}
               </div>
             </CardContent>
@@ -114,6 +128,10 @@ export default function UserDetailPage() {
               <Row icon={Phone} label={formatDisplay(user.alanyaPhone)} />
               <Row icon={Globe} label={user.paysLibelle || "Inconnu"} />
               <Row icon={Shield} label={roleLabels[user.typeCompte] || "Inconnu"} />
+              <Row icon={Shield} label={`Compte ${accountTypeLabels[user.accountType ?? 0]}`} />
+              {(user.verificationStatus ?? 0) > 0 && (
+                <Row icon={CheckCircle2} label={verificationLabels[user.verificationStatus ?? 0]} />
+              )}
               <Row icon={Calendar} label={`Inscrit le ${user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr") : "-"}`} />
               <Row icon={Clock} label={`Dernière activité : ${user.lastSeen ? new Date(user.lastSeen).toLocaleString("fr") : "-"}`} />
               {user.exclus && (

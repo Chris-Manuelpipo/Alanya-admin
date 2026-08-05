@@ -34,6 +34,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 
 const roleLabels: Record<number, string> = { 0: "User", 1: "Admin", 2: "Super Admin" };
 const roleColors: Record<number, string> = { 0: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300", 1: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300", 2: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" };
+const accountTypeLabels: Record<number, string> = { 0: "Personnel", 1: "Business", 2: "Officiel" };
+const accountTypeColors: Record<number, string> = {
+  0: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+  1: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+  2: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+};
 const statusOptions = [
   { value: "", label: "Tous" },
   { value: "online", label: "En ligne" },
@@ -51,6 +57,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [idPays, setIdPays] = useState("");
+  const [accountType, setAccountType] = useState("");
   const [period, setPeriod] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -58,7 +65,7 @@ export default function UsersPage() {
   const [order, setOrder] = useState("desc");
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const { data, isLoading, isFetching } = useUsers({ search, status, page, limit: 20, idPays, sort, order });
+  const { data, isLoading, isFetching } = useUsers({ search, status, page, limit: 20, idPays, accountType, sort, order });
   const banMutation = useBanUser();
   const unbanMutation = useUnbanUser();
   const roleMutation = useSetUserRole();
@@ -161,7 +168,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
             <button
-              onClick={() => { setStatus(""); setIdPays(""); setPeriod(""); setDateFrom(""); setDateTo(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
+              onClick={() => { setStatus(""); setIdPays(""); setAccountType(""); setPeriod(""); setDateFrom(""); setDateTo(""); setSort("created_at"); setOrder("desc"); setPage(1); }}
               className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               Réinitialiser
@@ -183,6 +190,15 @@ export default function UsersPage() {
                 <option value="3">Cameroun</option>
                 <option value="4">Sénégal</option>
                 <option value="5">Maroc</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500">Type de compte</label>
+              <select value={accountType} onChange={(e) => { setAccountType(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <option value="">Tous</option>
+                <option value="0">Personnel</option>
+                <option value="1">Business</option>
+                <option value="2">Officiel</option>
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
@@ -219,7 +235,7 @@ export default function UsersPage() {
       )}
 
       {/* Active Filter Badges */}
-      {(status || idPays || period || sort !== "created_at" || order !== "desc") && !showFilters && (
+      {(status || idPays || accountType || period || sort !== "created_at" || order !== "desc") && !showFilters && (
         <div className="flex flex-wrap items-center gap-2">
           {status && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
@@ -233,6 +249,14 @@ export default function UsersPage() {
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
               {idPays === "1" ? "France" : idPays === "2" ? "Côte d'Ivoire" : idPays === "3" ? "Cameroun" : idPays === "4" ? "Sénégal" : idPays === "5" ? "Maroc" : idPays}
               <button onClick={() => { setIdPays(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {accountType && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              {accountTypeLabels[Number(accountType)] || accountType}
+              <button onClick={() => { setAccountType(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
                 <X className="h-3 w-3" />
               </button>
             </span>
@@ -296,6 +320,7 @@ export default function UsersPage() {
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Email</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Téléphone</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Rôle</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Compte</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Statut</th>
                 <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Inscrit le</th>
                 <th className="text-right px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Actions</th>
@@ -335,6 +360,11 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="px-3 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${accountTypeColors[user.accountType ?? 0]}`}>
+                      {accountTypeLabels[user.accountType ?? 0]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
                     {user.exclus ? (
                       <Badge variant="destructive" className="text-xs">Banni</Badge>
                     ) : user.isOnline ? (
@@ -355,7 +385,7 @@ export default function UsersPage() {
               ))
               )}
               {!isLoading && !isFetching && data?.items.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-16 text-center">
+                <tr><td colSpan={11} className="px-4 py-16 text-center">
                   <div className="text-zinc-300 dark:text-zinc-600 mb-2">
                     <Search className="h-10 w-10 mx-auto" />
                   </div>

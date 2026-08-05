@@ -1,4 +1,4 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, AdminProfile } from '@/types';
+import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
@@ -77,11 +77,17 @@ export async function fetchUsers(params: {
   page?: number;
   limit?: number;
   idPays?: string;
+  accountType?: string;
   sort?: string;
   order?: string;
 }): Promise<UsersResponse> {
   if (USE_MOCK) return mockUsersResponse(params);
-  const res = await api.get('/admin/users', { params });
+  const apiParams: Record<string, string | number | undefined> = { ...params };
+  if (params.accountType != null && params.accountType !== '') {
+    apiParams.account_type = params.accountType;
+    delete apiParams.accountType;
+  }
+  const res = await api.get('/admin/users', { params: apiParams });
   return res.data;
 }
 
@@ -450,92 +456,40 @@ export async function uploadMedia(
 
 // ── Broadcasts ──
 
-const mockBroadcasts: Broadcast[] = [
-  {
-    id: 1,
-    senderId: 1,
-    createdBy: 1,
-    content: "Bienvenue sur Alanya ! N'hésitez pas à nous contacter pour toute question.",
-    type: 0,
-    mediaUrl: null,
-    targetType: "all",
-    targetCriteria: {},
-    recipientCount: 76,
-    sentAt: "2026-07-14T10:30:00Z",
-  },
-  {
-    id: 2,
-    senderId: 1,
-    createdBy: 1,
-    content: "Maintenance prévue ce soir de 23h à 2h. Veuillez sauvegarder vos conversations.",
-    type: 0,
-    mediaUrl: null,
-    targetType: "all",
-    targetCriteria: {},
-    recipientCount: 76,
-    sentAt: "2026-07-13T15:00:00Z",
-  },
-  {
-    id: 3,
-    senderId: 1,
-    createdBy: 1,
-    content: "Nouvelle fonctionnalité : les appels groupe sont maintenant disponibles !",
-    type: 1,
-    mediaUrl: "/admin/logo.png",
-    targetType: "country",
-    targetCriteria: { idPays: 5 },
-    recipientCount: 32,
-    sentAt: "2026-07-12T09:15:00Z",
-  },
-  {
-    id: 4,
-    senderId: 1,
-    createdBy: 1,
-    content: "Alanya est maintenant disponible en version 2.0 ! Découvrez les nouvelles fonctionnalités.",
-    type: 3,
-    mediaUrl: null,
-    targetType: "all",
-    targetCriteria: {},
-    recipientCount: 76,
-    sentAt: "2026-07-11T12:00:00Z",
-  },
-];
-
 export async function fetchBroadcasts(params: { page?: number; limit?: number } = {}): Promise<BroadcastsResponse> {
-  if (USE_MOCK) {
-    const page = params.page || 1;
-    const limit = params.limit || 20;
-    const start = (page - 1) * limit;
-    return {
-      items: mockBroadcasts.slice(start, start + limit),
-      total: mockBroadcasts.length,
-      page,
-      limit,
-    };
-  }
   const res = await api.get('/admin/broadcasts', { params });
   return res.data as BroadcastsResponse;
 }
 
-export async function createBroadcast(data: BroadcastFormData): Promise<Broadcast> {
-  if (USE_MOCK) {
-    const newBroadcast: Broadcast = {
-      id: mockBroadcasts.length + 1,
-      senderId: 1,
-      createdBy: 1,
-      content: data.content,
-      type: data.type,
-      mediaUrl: data.mediaUrl || null,
-      targetType: data.targetType,
-      targetCriteria: data.targetCriteria,
-      recipientCount: data.targetType === "all" ? 76 : data.targetType === "country" ? 32 : (data.targetCriteria.userIds?.length || 0),
-      sentAt: new Date().toISOString(),
-    };
-    mockBroadcasts.unshift(newBroadcast);
-    return newBroadcast;
-  }
-  const res = await api.post('/admin/broadcasts', data);
+export async function fetchBroadcast(id: number): Promise<Broadcast> {
+  const res = await api.get(`/admin/broadcasts/${id}`);
   return res.data as Broadcast;
+}
+
+export async function estimateBroadcast(criteria: import('@/types').BroadcastCriteria): Promise<BroadcastEstimateResult> {
+  const res = await api.post('/admin/broadcasts/estimate', { criteria });
+  return res.data as BroadcastEstimateResult;
+}
+
+export async function createBroadcast(data: BroadcastFormData): Promise<Broadcast | { scheduled: true; clientId: string; scheduledAt: string; estimate: number }> {
+  const res = await api.post('/admin/broadcasts', data);
+  return res.data;
+}
+
+export async function cancelScheduledBroadcast(jobId: number): Promise<void> {
+  await api.delete(`/admin/broadcasts/scheduled/${jobId}`);
+}
+
+export async function fetchVilles(idPays: number, search = ''): Promise<Ville[]> {
+  const res = await api.get('/admin/villes', { params: { idPays, search } });
+  return (res.data?.items || []) as Ville[];
+}
+
+export async function fetchOfficialSenders(): Promise<import('@/types').User[]> {
+  const res = await api.get('/admin/users', {
+    params: { account_type: 2, limit: 50, sort: 'nom', order: 'asc' },
+  });
+  return (res.data?.items || []) as import('@/types').User[];
 }
 
 // ── Admin Profile ──

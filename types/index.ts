@@ -21,6 +21,9 @@ export interface TopUser {
   callsReceived: number;
 }
 
+export type AccountType = 0 | 1 | 2;
+export type VerificationStatus = 0 | 1 | 2 | 3 | 4 | 5;
+
 export interface User {
   alanyaID: number;
   nom: string;
@@ -30,6 +33,9 @@ export interface User {
   idPays: number;
   avatarUrl: string;
   typeCompte: number;
+  accountType: AccountType;
+  verificationStatus: VerificationStatus;
+  verifiedUntil: string | null;
   isOnline: boolean;
   lastSeen: string;
   exclus: boolean;
@@ -290,45 +296,109 @@ export interface MediaItem {
 
 // ── Broadcast / Diffusion ──
 
+export type BroadcastCriteriaField =
+  | 'idPays'
+  | 'idVille'
+  | 'genre'
+  | 'age'
+  | 'account_type'
+  | 'verification_status'
+  | 'created_at'
+  | 'last_seen'
+  | 'verified_until'
+  | 'alanyaID';
+
+export type BroadcastCriteriaOp =
+  | 'eq'
+  | 'in'
+  | 'lt'
+  | 'lte'
+  | 'gt'
+  | 'gte'
+  | 'between'
+  | 'before'
+  | 'after';
+
+export interface BroadcastCondition {
+  field: BroadcastCriteriaField;
+  op: BroadcastCriteriaOp;
+  value: unknown;
+}
+
+export interface BroadcastCriteria {
+  v?: number;
+  op: 'and' | 'or';
+  conditions: BroadcastCondition[];
+  resolvedAt?: string | null;
+}
+
+export type BroadcastPushStatus =
+  | 'preparing'
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'partial_failed';
+
 export interface Broadcast {
   id: number;
   senderId: number;
+  senderName?: string;
   createdBy: number;
+  kind?: number;
   content: string;
-  type: number;         // 0=text, 1=image, 2=video
+  type: number;
   mediaUrl: string | null;
-  targetType: string;   // 'all' | 'country' | 'specific'
-  targetCriteria: Record<string, unknown>;
-  recipientCount: number;
+  criteria: BroadcastCriteria;
+  estimate: number;
+  clientId: string;
+  status: BroadcastPushStatus | string;
+  pushJobsTotal: number;
+  pushJobsDone: number;
+  pushFailedJobs: number;
+  pushProgress: number;
+  pushCompletedAt: string | null;
+  deliveredCount: number;
+  deliveredCountRefreshedAt: string | null;
+  openRate: number;
   sentAt: string;
 }
 
-export interface BroadcastRecipient {
-  id: number;
-  broadcastId: number;
-  alanyaId: number;
-  conversationId: number | null;
-  messageId: number | null;
-  sentAt: string;
+export interface BroadcastEstimateResult {
+  count: number;
+  sqlPreview: string;
+  criteria: BroadcastCriteria;
+}
+
+export interface ScheduledBroadcast {
+  jobId: number;
+  scheduledAt: string;
+  payload: Record<string, unknown>;
 }
 
 export interface BroadcastFormData {
+  senderId: number;
   content: string;
   type: number;
   mediaUrl?: string;
-  targetType: 'all' | 'country' | 'specific';
-  targetCriteria: {
-    idPays?: number;
-    userIds?: number[];
-  };
+  criteria: BroadcastCriteria;
+  clientId: string;
   isStatus?: boolean;
+  scheduledAt?: string;
+  confirmedEstimate?: number;
 }
 
 export interface BroadcastsResponse {
   items: Broadcast[];
+  scheduled?: ScheduledBroadcast[];
   total: number;
   page: number;
   limit: number;
+}
+
+export interface Ville {
+  idVille: number;
+  libelle: string;
+  idPays: number;
 }
 
 // ── Admin Profile ──
