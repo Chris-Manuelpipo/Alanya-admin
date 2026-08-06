@@ -73,10 +73,7 @@ export function RichTextArea({
         rows={rows}
         disabled={disabled}
         className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      />
-      <p className="text-[11px] text-zinc-400">
-        Même syntaxe que l&apos;app : *gras* _italique_ ~barré~ =souligné= #manuscrit#
-      </p>
+      /> 
     </div>
   );
 }

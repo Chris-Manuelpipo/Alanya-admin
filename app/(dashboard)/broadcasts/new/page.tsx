@@ -39,6 +39,7 @@ import {
 } from "@/components/broadcasts/CriteriaBuilder";
 import { RecipientEstimate, useRecipientEstimate } from "@/components/broadcasts/RecipientEstimate";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
+import { StatusBackgroundPicker } from "@/components/preview/StatusBackgroundPicker";
 import type { PreviewContent } from "@/components/preview/PreviewStage";
 import type { PreviewLang } from "@/components/preview/types";
 import { useBroadcasts, useCreateBroadcast, useOfficialAccount } from "@/hooks/useBroadcasts";
@@ -81,6 +82,7 @@ export default function NewBroadcastPage() {
   const [lang, setLang] = useState<PreviewLang>("fr");
   const [nature, setNature] = useState(0);
   const [mediaUrl, setMediaUrl] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [criteriaDrafts, setCriteriaDrafts] = useState<DraftCondition[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -107,10 +109,11 @@ export default function NewBroadcastPage() {
           contentEn,
           type: isStatut ? statutMediaType(mediaUrl) : nature,
           mediaUrl,
+          backgroundColor,
         },
         lang,
       ),
-    [isStatut, contentFr, contentEn, nature, mediaUrl, lang],
+    [isStatut, contentFr, contentEn, nature, mediaUrl, backgroundColor, lang],
   );
 
   const previewContent = useMemo<PreviewContent>(() => {
@@ -120,6 +123,7 @@ export default function NewBroadcastPage() {
         text: preview.text,
         type: preview.type,
         mediaUrl: preview.mediaUrl,
+        backgroundColor: preview.backgroundColor,
         senderName: official?.nom || "Alanya",
         senderAvatar: official?.avatarUrl,
       };
@@ -138,12 +142,17 @@ export default function NewBroadcastPage() {
   const errors = useMemo(() => {
     const list = criteriaErrors(criteriaDrafts);
     if (!contentFr.trim()) list.push("Le contenu en français est obligatoire.");
+    // Les deux langues sont exigées : sans traduction, les anglophones
+    // recevraient le texte français sans que rien ne le signale.
+    if (contentFr.trim() && !contentEn.trim()) {
+      list.push("La traduction anglaise est obligatoire.");
+    }
     if (mediaRequired && !mediaUrl.trim()) {
       list.push(`Un média est requis pour une diffusion de type ${nature === 1 ? "image" : "vidéo"}.`);
     }
     if (!official) list.push("Aucun compte officiel n'existe : la diffusion est impossible.");
     return list;
-  }, [criteriaDrafts, contentFr, mediaRequired, mediaUrl, nature, official]);
+  }, [criteriaDrafts, contentFr, contentEn, mediaRequired, mediaUrl, nature, official]);
 
   const canSend =
     errors.length === 0 && !createMutation.isPending && !estimateLoading && estimatedCount != null;
@@ -157,6 +166,7 @@ export default function NewBroadcastPage() {
       contentEn: contentEn.trim() || undefined,
       type: isStatut ? statutMediaType(mediaUrl) : nature,
       mediaUrl: mediaUrl || undefined,
+      backgroundColor: backgroundColor || undefined,
       criteria,
       clientId,
       kind: isStatut ? 1 : 0,
@@ -329,9 +339,9 @@ export default function NewBroadcastPage() {
                 )}
               />
 
-              {lang === "en" && !contentEn.trim() && contentFr.trim() && (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
-                  Vide : les utilisateurs anglophones recevront le texte français.
+              {!contentEn.trim() && contentFr.trim() && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Traduction anglaise obligatoire — passez à l&apos;onglet EN.
                 </p>
               )}
 
@@ -360,6 +370,18 @@ export default function NewBroadcastPage() {
                     accept={nature === 2 ? "video/*" : "image/*,video/*"}
                     maxSize={50 * 1024 * 1024}
                     onUploadComplete={(url) => setMediaUrl(url)}
+                  />
+                </div>
+              )}
+
+              {/* Un statut média recouvre tout l'écran : la couleur ne sert
+                  qu'au statut texte, et le sélecteur disparaît dès qu'un média
+                  est joint. */}
+              {isStatut && !mediaUrl.trim() && (
+                <div className="border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                  <StatusBackgroundPicker
+                    value={backgroundColor}
+                    onChange={setBackgroundColor}
                   />
                 </div>
               )}

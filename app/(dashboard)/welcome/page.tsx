@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,33 @@ export default function WelcomePage() {
   const [tab, setTab] = useState<"message" | "statut">("message");
   const [blocks, setBlocks] = useState<WelcomeBlock[]>([]);
   const [dirty, setDirty] = useState(false);
+
+  /**
+   * Blocs dont la traduction anglaise manque — numérotés comme dans l'éditeur.
+   *
+   * La règle est « traduire ce qui est écrit » : une légende vide des deux côtés
+   * reste légitime sur un bloc image ou vidéo. Un bouton sans libellé anglais
+   * est purement supprimé à la livraison, l'anglophone verrait donc un bloc
+   * amputé — il compte donc aussi.
+   */
+  const untranslated = useMemo(
+    () =>
+      blocks
+        .map((b, i) => {
+          const textMissing =
+            b.blockType !== "cta" &&
+            (b.contentFr ?? "").trim() &&
+            !(b.contentEn ?? "").trim();
+          const ctaMissing =
+            b.blockType === "cta" &&
+            (b.ctaJson?.buttons ?? []).some(
+              (btn) => (btn.labelFr ?? "").trim() && !(btn.labelEn ?? "").trim(),
+            );
+          return textMissing || ctaMissing ? i + 1 : null;
+        })
+        .filter((n): n is number => n !== null),
+    [blocks],
+  );
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmBackfill, setConfirmBackfill] = useState(false);
 
@@ -65,6 +92,15 @@ export default function WelcomePage() {
   }
 
   function handlePublish() {
+    if (untranslated.length) {
+      setConfirmPublish(false);
+      addToast({
+        title: "Traduction anglaise manquante",
+        description: `Bloc(s) ${untranslated.join(", ")} — complétez l'onglet EN avant de publier.`,
+        variant: "error",
+      });
+      return;
+    }
     publishMutation.mutate(undefined, {
       onSuccess: () => {
         setConfirmPublish(false);
@@ -189,7 +225,12 @@ export default function WelcomePage() {
                 </Button>
                 <Button
                   onClick={() => setConfirmPublish(true)}
-                  disabled={publishMutation.isPending}
+                  disabled={publishMutation.isPending || untranslated.length > 0}
+                  title={
+                    untranslated.length
+                      ? `Traduction anglaise manquante — bloc(s) ${untranslated.join(", ")}`
+                      : undefined
+                  }
                   className="bg-indigo-600 text-white hover:bg-indigo-700"
                 >
                   <Rocket className="mr-1 h-4 w-4" />
@@ -209,6 +250,15 @@ export default function WelcomePage() {
                   )}
                 </Button>
               </div>
+
+              {untranslated.length > 0 && (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">
+                  Traduction anglaise manquante — bloc(s){" "}
+                  <strong>{untranslated.join(", ")}</strong>. Les deux langues sont
+                  obligatoires : sans traduction, les anglophones recevraient le texte
+                  français.
+                </p>
+              )}
 
               {pending > 0 && (
                 <p className="text-sm text-amber-600 dark:text-amber-500">

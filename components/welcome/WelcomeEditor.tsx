@@ -296,9 +296,9 @@ function BlockCard({
               placeholder={block.blockType === "text" ? "Message…" : "Légende (optionnelle)"}
               rows={block.blockType === "text" ? 5 : 3}
             />
-            {lang === "en" && !((block.contentEn ?? "").trim()) && (
-              <p className="text-xs text-amber-600 dark:text-amber-500">
-                Vide : les utilisateurs anglophones verront le texte français.
+            {(block.contentFr ?? "").trim() && !((block.contentEn ?? "").trim()) && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                Traduction anglaise obligatoire pour publier.
               </p>
             )}
           </div>
@@ -326,13 +326,17 @@ function BlockCard({
           <div className="space-y-3">
             {(block.ctaJson?.buttons ?? []).map((btn, bi) => {
               // Le serveur écarte les boutons sans libellé ou sans cible.
-              const dropped = !(lang === "en" ? btn.labelEn || btn.labelFr : btn.labelFr || btn.labelEn) || !btn.target;
+              const dropped = !(btn.labelFr || btn.labelEn) || !btn.target;
+              // Un libellé anglais manquant fait disparaître le bouton chez les
+              // anglophones : l'anglais est donc exigé dès que le français est
+              // rempli, comme partout ailleurs.
+              const missingEn = !!btn.labelFr?.trim() && !btn.labelEn?.trim();
               return (
                 <div
                   key={bi}
                   className={cn(
                     "space-y-2 rounded-lg border p-3",
-                    dropped
+                    dropped || missingEn
                       ? "border-amber-300 bg-amber-50/50 dark:border-amber-800/60 dark:bg-amber-950/20"
                       : "border-zinc-100 dark:border-zinc-800",
                   )}
@@ -394,6 +398,12 @@ function BlockCard({
                   {dropped && (
                     <p className="text-xs text-amber-700 dark:text-amber-500">
                       Libellé ou destination manquant — ce bouton ne sera pas envoyé.
+                    </p>
+                  )}
+                  {!dropped && missingEn && (
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      Libellé anglais obligatoire — sans lui, le bouton disparaît chez
+                      les anglophones.
                     </p>
                   )}
                 </div>

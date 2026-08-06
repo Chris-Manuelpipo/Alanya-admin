@@ -362,6 +362,8 @@ export interface Broadcast {
   contentEn?: string | null;
   type: number;
   mediaUrl: string | null;
+  /** Statut uniquement — `#RRGGBB` ; null = indigo de marque. */
+  backgroundColor: string | null;
   criteria: BroadcastCriteria;
   estimate: number;
   clientId: string;
@@ -395,6 +397,8 @@ export interface BroadcastFormData {
   contentEn?: string | null;
   type: number;
   mediaUrl?: string;
+  /** Statut uniquement — `#RRGGBB` ; vide = indigo de marque. */
+  backgroundColor?: string;
   criteria: BroadcastCriteria;
   clientId: string;
   kind?: number;

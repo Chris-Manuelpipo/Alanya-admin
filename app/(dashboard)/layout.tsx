@@ -28,12 +28,12 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/groups", label: "Groups", icon: UsersRound },
-  { href: "/meetings", label: "Meetings", icon: Video },
-  { href: "/medias", label: "Medias", icon: ImageIcon },
+  { href: "/users", label: "Utilisateurs", icon: Users },
+  { href: "/groups", label: "Groupes", icon: UsersRound },
+  { href: "/meetings", label: "Réunions", icon: Video },
+  { href: "/medias", label: "Médias", icon: ImageIcon },
   { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
-  { href: "/broadcasts", label: "Broadcasts", icon: Megaphone },
+  { href: "/broadcasts", label: "Diffusions", icon: Megaphone },
   { href: "/settings", label: "Paramètres", icon: Settings },
   { href: "/profile", label: "Mon profil", icon: UserCircle },
 ];

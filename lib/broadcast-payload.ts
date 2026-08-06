@@ -16,6 +16,10 @@ export function toBroadcastApiPayload(data: import("@/types").BroadcastFormData)
     contentEn: data.contentEn,
     type: isStatus ? statutMediaType(data.mediaUrl) : data.type,
     mediaUrl: data.mediaUrl,
+    // La couleur n'a de sens que pour un statut texte : un statut média la
+    // masque entièrement, un message ne l'affiche nulle part.
+    backgroundColor:
+      isStatus && !data.mediaUrl?.trim() ? data.backgroundColor || undefined : undefined,
     criteria: data.criteria,
     clientId: data.clientId,
     kind: isStatus ? 1 : 0,

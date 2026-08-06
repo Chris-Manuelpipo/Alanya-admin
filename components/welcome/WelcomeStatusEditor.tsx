@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import type { PreviewContent } from "@/components/preview/PreviewStage";
-import { STATUS_DEFAULT_BG, statusForeground } from "@/components/preview/StatusPreview";
+import { StatusBackgroundPicker } from "@/components/preview/StatusBackgroundPicker";
 import type { PreviewLang } from "@/components/preview/types";
 import { useSaveWelcomeStatus, useWelcomeStatus } from "@/hooks/useWelcome";
 import { cn } from "@/lib/utils";
@@ -21,17 +21,6 @@ const TYPES = [
   { value: 1, label: "Image", icon: ImageIcon },
   { value: 2, label: "Vidéo", icon: Video },
 ] as const;
-
-/** Fonds proposés — dont un clair, pour vérifier le passage du texte en noir. */
-const BACKGROUNDS = [
-  { value: "", label: "Indigo Alanya", hex: STATUS_DEFAULT_BG },
-  { value: "#1A237E", label: "Indigo profond", hex: "#1A237E" },
-  { value: "#1FA363", label: "Vert", hex: "#1FA363" },
-  { value: "#EF4444", label: "Rouge", hex: "#EF4444" },
-  { value: "#F59E0B", label: "Ambre", hex: "#F59E0B" },
-  { value: "#111827", label: "Noir", hex: "#111827" },
-  { value: "#F2F3FB", label: "Blanc cassé", hex: "#F2F3FB" },
-];
 
 const EMPTY: WelcomeStatusConfig = {
   enabled: false,
@@ -84,6 +73,11 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
   const contentError = useMemo(() => {
     if (form.type === 0 && !form.textFr.trim()) {
       return "Un statut texte exige un texte en français.";
+    }
+    // Le statut conserve les deux langues et l'app choisit à l'affichage :
+    // sans traduction, l'anglophone verrait du français.
+    if (form.textFr.trim() && !form.textEn.trim()) {
+      return "La traduction anglaise est obligatoire.";
     }
     if (form.type !== 0 && !form.mediaUrl.trim()) {
       return `Un statut ${form.type === 1 ? "image" : "vidéo"} exige un média.`;
@@ -241,62 +235,23 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                 className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">
-                  {/* Un statut n'accepte pas la mise en forme des messages. */}
-                  Texte brut — pas de *gras* ni de _italique_ sur un statut
-                </span>
+                
                 <span className={cn("tabular-nums", remaining < 20 ? "text-amber-600" : "text-zinc-400")}>
                   {remaining}
                 </span>
               </div>
-              {lang === "en" && !form.textEn.trim() && (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
-                  Vide : les utilisateurs anglophones verront le texte français.
+              {form.textFr.trim() && !form.textEn.trim() && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Traduction anglaise obligatoire.
                 </p>
               )}
             </div>
 
             {form.type === 0 ? (
-              <div className="space-y-2">
-                <Label>Couleur de fond</Label>
-                <div className="flex flex-wrap gap-2">
-                  {BACKGROUNDS.map((b) => {
-                    const active = (form.backgroundColor || "") === b.value;
-                    return (
-                      <button
-                        key={b.label}
-                        type="button"
-                        title={b.label}
-                        aria-label={b.label}
-                        aria-pressed={active}
-                        onClick={() => patch({ backgroundColor: b.value })}
-                        className={cn(
-                          "h-9 w-9 rounded-full border-2 transition-transform",
-                          active
-                            ? "scale-110 border-zinc-900 dark:border-zinc-100"
-                            : "border-zinc-200 hover:scale-105 dark:border-zinc-700",
-                        )}
-                        style={{ backgroundColor: b.hex }}
-                      />
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-zinc-400">
-                  Le texte passe automatiquement en noir sur un fond clair, comme dans
-                  l&apos;app.
-                </p>
-                {/* L'en-tête du viewer (nom, heure, croix) est toujours blanc dans
-                    l'app : sur un fond clair il devient illisible. L'aperçu le
-                    montre tel quel — autant l'expliquer plutôt que de le
-                    laisser découvrir en production. */}
-                {statusForeground(form.backgroundColor) === "#000000" && (
-                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400">
-                    Fond clair : le nom et l&apos;heure en haut du statut restent blancs
-                    dans l&apos;app et deviennent difficiles à lire. Vérifiez le rendu
-                    dans l&apos;aperçu avant d&apos;activer.
-                  </p>
-                )}
-              </div>
+              <StatusBackgroundPicker
+                value={form.backgroundColor}
+                onChange={(backgroundColor) => patch({ backgroundColor })}
+              />
             ) : (
               <div className="space-y-2">
                 <Label>Média</Label>

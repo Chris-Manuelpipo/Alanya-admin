@@ -10,11 +10,19 @@ export interface BroadcastPreviewInput {
   /** Type média du message (0 texte · 1 image · 2 vidéo · 3 audio · 4 fichier). */
   type: number;
   mediaUrl?: string | null;
+  /** Statut texte uniquement — `#RRGGBB` ; vide = indigo de marque. */
+  backgroundColor?: string | null;
 }
 
 export type BroadcastPreviewResult =
   | { mode: "chat"; messages: PreviewMessage[] }
-  | { mode: "status"; text: string; type: number; mediaUrl: string | null };
+  | {
+      mode: "status";
+      text: string;
+      type: number;
+      mediaUrl: string | null;
+      backgroundColor: string | null;
+    };
 
 /**
  * Dérive l'aperçu d'une diffusion telle qu'elle sera réellement livrée.
@@ -32,7 +40,14 @@ export function broadcastToPreview(
   const mediaUrl = input.mediaUrl?.trim() || null;
 
   if (input.kind === 1) {
-    return { mode: "status", text, type: statutMediaType(mediaUrl), mediaUrl };
+    return {
+      mode: "status",
+      text,
+      type: statutMediaType(mediaUrl),
+      mediaUrl,
+      // Un statut média recouvre le fond : la couleur ne s'applique qu'au texte.
+      backgroundColor: mediaUrl ? null : input.backgroundColor?.trim() || null,
+    };
   }
 
   return {
