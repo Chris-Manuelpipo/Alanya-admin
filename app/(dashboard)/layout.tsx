@@ -15,15 +15,17 @@ import {
   Menu,
   Megaphone,
   UserCircle,
+  HandHeart,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, adminLogout, getAdminUser } from "@/lib/auth";
+import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { useEffect, useState } from "react";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
-const navItems = [
+const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/users", label: "Users", icon: Users },
@@ -36,9 +38,14 @@ const navItems = [
   { href: "/profile", label: "Mon profil", icon: UserCircle },
 ];
 
+const superNavItems = [
+  { href: "/welcome", label: "Bienvenue", icon: HandHeart },
+];
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isSuper = useIsSuperAdmin();
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -59,6 +66,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const user = getAdminUser();
+  const navItems = isSuper
+    ? [
+        ...baseNavItems.slice(0, 8),
+        ...superNavItems,
+        ...baseNavItems.slice(8),
+      ]
+    : baseNavItems;
 
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">

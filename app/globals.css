@@ -330,3 +330,92 @@
     }
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Jetons du thème de l'application mobile Alanya.
+
+   Repris **au pixel** de /mnt/data/Alanya/lib/core/theme/{app_colors,app_theme}.dart.
+   Ils alimentent l'aperçu (components/preview/) et n'ont rien à voir avec les
+   jetons de l'admin ci-dessus.
+
+   Scopés par attribut et non par la classe `.dark` de Tailwind : l'aperçu doit
+   pouvoir afficher le mode sombre pendant que l'admin est en mode clair.
+   ───────────────────────────────────────────────────────────────────────── */
+
+[data-app-theme] {
+  /* Aucune police personnalisée dans pubspec.yaml → Roboto sur Android. */
+  --app-font: Roboto, "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  /* Sceau des comptes officiels — account_badge.dart:11 */
+  --app-seal: #c9a227;
+  /* Tuile 768×768 affichée à scale 1.85 → 768 / 1.85 ≈ 415.14 px logiques. */
+  --app-wallpaper-size: 415.14px;
+}
+
+[data-app-theme="light"] {
+  --app-primary: #3f51b5;
+  --app-on-primary: #ffffff;
+  --app-primary-container: #e8eaf6;
+  --app-on-primary-container: #1a237e;
+  --app-surface: #ffffff;
+  --app-on-surface: #1a1d23;
+  --app-on-surface-variant: #5b6273;
+  --app-surface-muted: #f4f5f8;
+  --app-surface-subtle: #edeff4;
+  --app-outline: #e2e5ec;
+  --app-online: #1fa363;
+  --app-wallpaper: url("/admin/chat/chat_wallpaper_light.jpg");
+  --app-wallpaper-opacity: 0.42;
+  --app-status-bar-fg: #1a1d23;
+}
+
+[data-app-theme="dark"] {
+  /* indigo.shade200 — la marque change en sombre, c'est le piège n°1. */
+  --app-primary: #9fa8da;
+  --app-on-primary: #1a237e;
+  --app-primary-container: #283593;
+  --app-on-primary-container: #c5cae9;
+  --app-surface: #181b21;
+  --app-on-surface: #f2f4f8;
+  --app-on-surface-variant: #aab1c0;
+  --app-surface-muted: #1f232b;
+  --app-surface-subtle: #242832;
+  --app-outline: #3a404c;
+  --app-online: #1fa363;
+  --app-wallpaper: url("/admin/chat/chat_wallpaper_dark.jpg");
+  --app-wallpaper-opacity: 0.32;
+  --app-status-bar-fg: #f2f4f8;
+}
+
+/* Couche de motif : opacité appliquée à l'image seule, jamais au contenu. */
+.app-wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--app-wallpaper);
+  background-repeat: repeat;
+  background-size: var(--app-wallpaper-size) var(--app-wallpaper-size);
+  background-position: top left;
+  opacity: var(--app-wallpaper-opacity);
+  pointer-events: none;
+}
+
+@keyframes preview-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preview-rise {
+  animation: preview-rise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-rise {
+    animation: none;
+  }
+}

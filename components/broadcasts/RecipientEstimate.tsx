@@ -37,12 +37,14 @@ export function useRecipientEstimate(criteria: BroadcastCriteria) {
 interface RecipientEstimateProps {
   count: number | null;
   loading: boolean;
+  /** Résumé lisible des critères — `formatCriteriaSummary`. */
+  summary?: string;
 }
 
-export function RecipientEstimate({ count, loading }: RecipientEstimateProps) {
+export function RecipientEstimate({ count, loading, summary }: RecipientEstimateProps) {
   return (
-    <div className="rounded-xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20 p-4">
-      <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
+    <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
         Destinataires estimés
       </p>
       {loading ? (
@@ -50,10 +52,13 @@ export function RecipientEstimate({ count, loading }: RecipientEstimateProps) {
           <Loader2 className="h-4 w-4 animate-spin" /> Calcul…
         </div>
       ) : (
-        <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
+        <p className="font-mono text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
           {count != null ? count.toLocaleString("fr-FR") : "—"}
         </p>
       )}
+      {summary ? (
+        <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">{summary}</p>
+      ) : null}
     </div>
   );
 }

@@ -516,6 +516,44 @@ export async function createOfficialAccount(): Promise<import('@/types').User> {
   return res.data as import('@/types').User;
 }
 
+// ── Message de bienvenue ──
+
+export async function fetchWelcomeConfig(): Promise<import('@/types').WelcomeAdminState> {
+  const res = await api.get('/admin/welcome');
+  return res.data as import('@/types').WelcomeAdminState;
+}
+
+export async function saveWelcomeDraft(blocks: import('@/types').WelcomeBlock[]): Promise<import('@/types').WelcomeConfig> {
+  const res = await api.put('/admin/welcome/draft', { blocks });
+  return res.data as import('@/types').WelcomeConfig;
+}
+
+export async function publishWelcomeConfig(): Promise<import('@/types').WelcomeConfig> {
+  const res = await api.post('/admin/welcome/publish');
+  return res.data as import('@/types').WelcomeConfig;
+}
+
+export async function backfillWelcomeMessages(): Promise<{ queued: boolean; pending: number }> {
+  const res = await api.post('/admin/welcome/backfill');
+  return res.data as { queued: boolean; pending: number };
+}
+
+/**
+ * Statut de bienvenue — réglage global : le PUT prend effet immédiatement,
+ * il ne transite pas par le brouillon ni par « Publier ».
+ */
+export async function fetchWelcomeStatus(): Promise<import('@/types').WelcomeStatusConfig> {
+  const res = await api.get('/admin/welcome/status');
+  return res.data as import('@/types').WelcomeStatusConfig;
+}
+
+export async function saveWelcomeStatus(
+  patch: Partial<import('@/types').WelcomeStatusConfig>,
+): Promise<import('@/types').WelcomeStatusConfig> {
+  const res = await api.put('/admin/welcome/status', patch);
+  return res.data as import('@/types').WelcomeStatusConfig;
+}
+
 // ── Admin Profile ──
 
 const mockAdminProfile: AdminProfile = {

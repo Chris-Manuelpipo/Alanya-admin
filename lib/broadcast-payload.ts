@@ -10,12 +10,19 @@ export function toBroadcastApiPayload(data: import("@/types").BroadcastFormData)
   return {
     senderId: data.senderId,
     content: data.content,
+    // Le serveur stocke `content_en` et le sert aux appareils en locale `en`
+    // (pickLocalized). Sans ce champ, les anglophones reçoivent le texte
+    // français quel que soit ce qui a été saisi dans l'onglet EN.
+    contentEn: data.contentEn,
     type: isStatus ? statutMediaType(data.mediaUrl) : data.type,
     mediaUrl: data.mediaUrl,
     criteria: data.criteria,
     clientId: data.clientId,
     kind: isStatus ? 1 : 0,
     scheduledAt: data.scheduledAt,
+    // `estimate` est ce que l'admin a vu ; `confirmedEstimate` déclenche la
+    // vérification anti-obsolescence côté serveur (409 « Estimation obsolète »).
+    estimate: data.estimate ?? data.confirmedEstimate,
     confirmedEstimate: data.confirmedEstimate,
   };
 }

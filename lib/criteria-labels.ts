@@ -1,3 +1,4 @@
+import { ACCOUNT_TYPE_LABELS, VERIFICATION_LABELS } from '@/lib/account-labels';
 import type {
   BroadcastCriteria,
   BroadcastCriteriaField,
@@ -23,12 +24,6 @@ const GENRE_LABELS: Record<string, string> = {
   femme: 'Femmes',
   autre: 'Autre',
   non_precise: 'Non précisé',
-};
-
-const ACCOUNT_LABELS: Record<number, string> = {
-  0: 'Personnel',
-  1: 'Business',
-  2: 'Officiel',
 };
 
 export function formatCriteriaSummary(
@@ -58,7 +53,20 @@ function formatCondition(
     return GENRE_LABELS[String(c.value)] || String(c.value);
   }
   if (c.field === 'account_type' && c.op === 'eq') {
-    return ACCOUNT_LABELS[Number(c.value)] || String(c.value);
+    return ACCOUNT_TYPE_LABELS[Number(c.value)] || String(c.value);
+  }
+  if (c.field === 'verification_status' && c.op === 'eq') {
+    return `${label} : ${VERIFICATION_LABELS[Number(c.value)] || String(c.value)}`;
+  }
+  if (c.field === 'alanyaID' && c.op === 'in' && Array.isArray(c.value)) {
+    return `${c.value.length} identifiant(s)`;
+  }
+  if (c.op === 'between' && Array.isArray(c.value)) {
+    return `${label} entre ${c.value[0]} et ${c.value[1]}`;
+  }
+  if (c.op === 'lte' || c.op === 'gte' || c.op === 'lt' || c.op === 'gt') {
+    const symbols: Record<string, string> = { lte: '≤', gte: '≥', lt: '<', gt: '>' };
+    return `${label} ${symbols[c.op]} ${c.value}`;
   }
   if (c.op === 'before' || c.op === 'after') {
     const rel = (c.value as { relative?: string })?.relative;

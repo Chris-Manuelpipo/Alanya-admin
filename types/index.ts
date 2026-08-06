@@ -336,7 +336,11 @@ export interface BroadcastCondition {
 
 export interface BroadcastCriteria {
   v?: number;
-  op: 'and' | 'or';
+  /**
+   * Seul `and` est supporté : `criteriaResolver.js` rejette `or` par un 400
+   * (« Seul op=and est supporté »).
+   */
+  op: 'and';
   conditions: BroadcastCondition[];
   resolvedAt?: string | null;
 }
@@ -355,6 +359,7 @@ export interface Broadcast {
   createdBy: number;
   kind?: number;
   content: string;
+  contentEn?: string | null;
   type: number;
   mediaUrl: string | null;
   criteria: BroadcastCriteria;
@@ -374,7 +379,7 @@ export interface Broadcast {
 
 export interface BroadcastEstimateResult {
   count: number;
-  sqlPreview: string;
+  /** Critères après gel des dates relatives (`resolveRelativeDates`). */
   criteria: BroadcastCriteria;
 }
 
@@ -387,6 +392,7 @@ export interface ScheduledBroadcast {
 export interface BroadcastFormData {
   senderId: number;
   content: string;
+  contentEn?: string | null;
   type: number;
   mediaUrl?: string;
   criteria: BroadcastCriteria;
@@ -394,6 +400,9 @@ export interface BroadcastFormData {
   kind?: number;
   isStatus?: boolean;
   scheduledAt?: string;
+  /** Estimation affichée à l'admin, stockée avec la diffusion. */
+  estimate?: number;
+  /** Estimation confirmée — comparée au recomptage serveur au moment de l'envoi. */
   confirmedEstimate?: number;
 }
 
@@ -404,6 +413,62 @@ export interface BroadcastsResponse {
   page: number;
   limit: number;
 }
+
+export type WelcomeBlockType = 'text' | 'image' | 'video' | 'cta';
+
+export interface WelcomeCtaButton {
+  labelFr: string;
+  labelEn: string;
+  action: 'route' | 'url';
+  target: string;
+}
+
+export interface WelcomeBlock {
+  id?: number;
+  sortOrder: number;
+  blockType: WelcomeBlockType;
+  contentFr?: string;
+  contentEn?: string;
+  mediaUrl?: string;
+  ctaJson?: { buttons: WelcomeCtaButton[] };
+}
+
+export interface WelcomeConfig {
+  id: number;
+  version: number;
+  isActive: boolean;
+  isDraft: boolean;
+  publishedAt: string | null;
+  publishedBy: number | null;
+  blocks: WelcomeBlock[];
+}
+
+export interface WelcomeAdminState {
+  active: WelcomeConfig | null;
+  draft: WelcomeConfig | null;
+  pendingBackfill: number;
+}
+
+/**
+ * Statut de bienvenue — réglage **global et non versionné**, contrairement au
+ * message : l'interrupteur prend effet sans passer par « Publier ».
+ * Un statut 24 h est créé pour chaque nouvel inscrit, visible de lui seul.
+ */
+export interface WelcomeStatusConfig {
+  enabled: boolean;
+  /** 0 texte · 1 image · 2 vidéo */
+  type: number;
+  textFr: string;
+  textEn: string;
+  mediaUrl: string;
+  /** `#RRGGBB` ; vide → indigo de marque `#3F51B5`. */
+  backgroundColor: string;
+  updatedAt: string | null;
+  updatedBy: number | null;
+}
+
+/** `statut.text` est un TINYTEXT — mêmes bornes que `STATUS_TEXT_MAX` côté serveur. */
+export const WELCOME_STATUS_TEXT_MAX = 200;
 
 export interface Ville {
   idVille: number;

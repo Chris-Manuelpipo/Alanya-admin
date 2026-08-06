@@ -45,6 +45,10 @@ const config: Config = {
         lg: "var(--radius)",
         xl: "calc(var(--radius) * 1.4)",
       },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        handwriting: ["var(--font-handwriting)", "cursive"],
+      },
     },
   },
   plugins: [],
