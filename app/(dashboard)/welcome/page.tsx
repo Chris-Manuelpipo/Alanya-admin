@@ -115,10 +115,25 @@ export default function WelcomePage() {
     backfillMutation.mutate(undefined, {
       onSuccess: (res) => {
         setConfirmBackfill(false);
+        if (res.queued) {
+          addToast({
+            title: "Rattrapage lancé",
+            description: `${res.pending.toLocaleString("fr-FR")} compte(s) à servir. Le compteur du bouton diminue au fil des lots — actualisez pour suivre.`,
+            variant: "success",
+          });
+          return;
+        }
+        // Un rattrapage non mis en file n'est pas un succès : le dire.
         addToast({
-          title: res.queued ? "Rattrapage lancé" : "Rien à envoyer",
-          description: res.pending ? `${res.pending} compte(s) en attente` : undefined,
-          variant: "success",
+          title:
+            res.reason === "ALREADY_RUNNING"
+              ? "Rattrapage déjà en cours"
+              : "Rien à envoyer",
+          description:
+            res.reason === "ALREADY_RUNNING"
+              ? "Un rattrapage est déjà en file d'attente. Attendez qu'il se termine."
+              : "Tous les comptes éligibles ont déjà reçu le message.",
+          variant: res.reason === "ALREADY_RUNNING" ? "error" : "success",
         });
       },
       onError: () => addToast({ title: "Échec du rattrapage", variant: "error" }),
@@ -236,19 +251,24 @@ export default function WelcomePage() {
                   <Rocket className="mr-1 h-4 w-4" />
                   Publier
                 </Button>
-                <Button
-                  onClick={() => setConfirmBackfill(true)}
-                  disabled={backfillMutation.isPending || pending === 0}
-                  variant="secondary"
-                >
-                  <Users className="mr-1 h-4 w-4" />
-                  Rattrapage
-                  {pending > 0 && (
+                {/* Le rattrapage n'apparaît que s'il a quelque chose à faire.
+                    En régime normal la livraison se fait à l'onboarding et le
+                    bouton reste invisible ; il ressurgit pour les comptes que
+                    l'automatisme a manqués — échec réseau en fin d'inscription,
+                    ou compte créé depuis l'admin qui n'ouvre jamais l'app. */}
+                {pending > 0 && (
+                  <Button
+                    onClick={() => setConfirmBackfill(true)}
+                    disabled={backfillMutation.isPending}
+                    variant="secondary"
+                  >
+                    <Users className="mr-1 h-4 w-4" />
+                    Rattrapage
                     <span className="ml-1.5 rounded-full bg-zinc-900/10 px-1.5 text-[11px] tabular-nums dark:bg-white/10">
                       {pending.toLocaleString("fr-FR")}
                     </span>
-                  )}
-                </Button>
+                  </Button>
+                )}
               </div>
 
               {untranslated.length > 0 && (

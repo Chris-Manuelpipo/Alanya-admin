@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
 import { formatDisplay } from "@/lib/alanya-phone";
+import { cn } from "@/lib/utils";
+import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,8 @@ import {
   X,
   UserPlus,
 } from "lucide-react";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import type { AdminExportParams } from "@/lib/admin-export";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const roleLabels: Record<number, string> = { 0: "User", 1: "Admin", 2: "Super Admin" };
@@ -38,8 +42,9 @@ const accountTypeLabels: Record<number, string> = { 0: "Personnel", 1: "Business
 const accountTypeColors: Record<number, string> = {
   0: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   1: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-  2: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+  2: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60",
 };
+
 const statusOptions = [
   { value: "", label: "Tous" },
   { value: "online", label: "En ligne" },
@@ -75,6 +80,18 @@ export default function UsersPage() {
   const [confirmBan, setConfirmBan] = useState<{ id: number; reason: string } | null>(null);
   const [confirmRole, setConfirmRole] = useState<{ id: number; role: number } | null>(null);
   const [confirmBulkBan, setConfirmBulkBan] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const exportFilterParams: AdminExportParams = {
+    search: search || undefined,
+    status: status || undefined,
+    idPays: idPays || undefined,
+    account_type: accountType || undefined,
+    from: dateFrom || undefined,
+    to: dateTo || undefined,
+    sort,
+    order,
+  };
 
   function handleSearch(val: string) {
     setSearch(val);
@@ -100,28 +117,6 @@ export default function UsersPage() {
     }
   }, [data, selected]);
 
-  function exportCSV() {
-    if (!data) return;
-    const headers = ["ID", "Nom", "Pseudo", "Email", "Téléphone", "Rôle", "Statut", "Pays", "Inscrit le"];
-    const rows = data.items.map((u) => [
-      u.alanyaID,
-      u.nom,
-      u.pseudo,
-      u.email,
-      u.alanyaPhone,
-      roleLabels[u.typeCompte],
-      u.exclus ? "Banni" : u.isOnline ? "En ligne" : "Hors ligne",
-      u.paysLibelle || "",
-      u.createdAt ? new Date(u.createdAt).toLocaleDateString("fr") : "",
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `talky_users_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    addToast({ title: "Exporté", description: `${data.items.length} utilisateurs`, variant: "success" });
-  }
 
   async function handleBulkBan() {
     setConfirmBulkBan(false);
@@ -146,8 +141,8 @@ export default function UsersPage() {
           <Button size="sm" onClick={() => router.push("/users/new")}>
             <UserPlus className="h-4 w-4 mr-1" /> Créer
           </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="h-4 w-4 mr-1" /> CSV
+          <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+            <Download className="h-4 w-4 mr-1" /> Exporter
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-indigo-50 dark:bg-indigo-950" : ""}>
             <SlidersHorizontal className="h-4 w-4 mr-1" />
@@ -164,7 +159,7 @@ export default function UsersPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="rounded-lg border bg-white dark:bg-zinc-900 animate-in fade-in slide-in-from-top-2">
+        <div className="rounded-lg border bg-card animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
             <button
@@ -176,14 +171,14 @@ export default function UsersPage() {
           </div>
           <div className="flex flex-wrap gap-4 p-4">
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Statut</label>
-              <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Statut</label>
+              <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Pays</label>
-              <select value={idPays} onChange={(e) => { setIdPays(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Pays</label>
+              <select value={idPays} onChange={(e) => { setIdPays(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="">Tous</option>
                 <option value="1">France</option>
                 <option value="2">Côte d&apos;Ivoire</option>
@@ -193,8 +188,8 @@ export default function UsersPage() {
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Type de compte</label>
-              <select value={accountType} onChange={(e) => { setAccountType(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Type de compte</label>
+              <select value={accountType} onChange={(e) => { setAccountType(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="">Tous</option>
                 <option value="0">Personnel</option>
                 <option value="1">Business</option>
@@ -202,8 +197,8 @@ export default function UsersPage() {
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Période</label>
-              <select value={period} onChange={(e) => { setPeriod(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Période</label>
+              <select value={period} onChange={(e) => { setPeriod(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="">Toutes</option>
                 <option value="7d">7 jours</option>
                 <option value="30d">30 jours</option>
@@ -212,20 +207,20 @@ export default function UsersPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-zinc-500">Dates</label>
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Dates</label>
               <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={(v) => { setDateFrom(v); setPage(1); }} onToChange={(v) => { setDateTo(v); setPage(1); }} />
             </div>
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Trier par</label>
-              <select value={sort} onChange={(e) => setSort(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Trier par</label>
+              <select value={sort} onChange={(e) => setSort(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="created_at">Date d&apos;inscription</option>
                 <option value="nom">Nom</option>
                 <option value="last_seen">Dernière activité</option>
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
-              <label className="text-xs font-medium text-zinc-500">Ordre</label>
-              <select value={order} onChange={(e) => setOrder(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Ordre</label>
+              <select value={order} onChange={(e) => setOrder(e.target.value)} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="desc">Décroissant</option>
                 <option value="asc">Croissant</option>
               </select>
@@ -306,24 +301,24 @@ export default function UsersPage() {
       )}
 
       {/* Table */}
-      <Card className="border-0 shadow-sm overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-zinc-50 dark:bg-zinc-900">
                 <th className="w-10 px-2 py-3">
-                  <input type="checkbox" checked={data ? selected.size === data.items.length && data.items.length > 0 : false} onChange={toggleAll} className="rounded border-zinc-300" />
+                  <input type="checkbox" checked={data ? selected.size === data.items.length && data.items.length > 0 : false} onChange={toggleAll} className="rounded border-zinc-300 dark:border-zinc-600 accent-indigo-600" />
                 </th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">ID</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Nom</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">ID</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Nom</th>
                 <th className="w-12 px-3 py-3"></th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Email</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Téléphone</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Rôle</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Compte</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Statut</th>
-                <th className="text-left px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Inscrit le</th>
-                <th className="text-right px-3 py-3 font-medium text-zinc-500 text-xs uppercase tracking-wider">Actions</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Email</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Téléphone</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Rôle</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Compte</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Statut</th>
+                <th className="text-left px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Inscrit le</th>
+                <th className="text-right px-3 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-zinc-800">
@@ -332,27 +327,54 @@ export default function UsersPage() {
               ) : isFetching ? (
                 <UsersTableRowsSkeleton count={6} />
               ) : (
-                data?.items.map((user) => (
-                <tr key={user.alanyaID} className={`hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors ${selected.has(user.alanyaID) ? "bg-indigo-50/50 dark:bg-indigo-950/20" : ""}`}>
+                data?.items.map((user) => {
+                const official = isOfficialAlanyaAccount(user);
+                const isSelected = selected.has(user.alanyaID);
+                return (
+                <tr
+                  key={user.alanyaID}
+                  className={cn(
+                    "transition-colors",
+                    official
+                      ? "bg-amber-50/80 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      : "hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
+                    isSelected && !official && "bg-indigo-50/50 dark:bg-indigo-950/20",
+                    isSelected && official && "bg-amber-100/90 dark:bg-amber-950/35 ring-1 ring-inset ring-amber-200/60 dark:ring-amber-800/50",
+                  )}
+                >
                   <td className="px-2 py-3">
-                    <input type="checkbox" checked={selected.has(user.alanyaID)} onChange={() => toggleSelect(user.alanyaID)} className="rounded border-zinc-300" />
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(user.alanyaID)} className="rounded border-zinc-300 dark:border-zinc-600 accent-indigo-600" />
                   </td>
-                  <td className="px-3 py-3 text-zinc-500 font-mono text-xs">{user.alanyaID}</td>
+                  <td className="px-3 py-3 text-zinc-500 dark:text-zinc-400 font-mono text-xs">{user.alanyaID}</td>
                   <td className="px-3 py-3">
-                    <button onClick={() => router.push(`/users/${user.alanyaID}`)} className="font-medium hover:text-indigo-600 transition-colors text-left">
-                      {user.nom}
+                    <button
+                      onClick={() => router.push(`/users/${user.alanyaID}`)}
+                      className={cn(
+                        "font-medium transition-colors text-left max-w-full",
+                        official
+                          ? "text-amber-900 hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+                          : "hover:text-indigo-600 dark:hover:text-indigo-400",
+                      )}
+                    >
+                      <AccountBadgeLabel
+                        name={user.nom}
+                        accountType={user.accountType ?? 0}
+                        verificationStatus={user.verificationStatus ?? 0}
+                        fontSize={14}
+                        nameClassName="font-medium"
+                      />
                     </button>
-                    <div className="text-xs text-zinc-400">@{user.pseudo}</div>
+                    <div className="text-xs text-zinc-400 mt-0.5">@{user.pseudo}</div>
                   </td>
                   <td className="px-3 py-3">
-                    <Avatar className="h-9 w-9">
+                    <Avatar className={cn("h-9 w-9", official && "ring-2 ring-amber-300/60 dark:ring-amber-700/50")}>
                       <AvatarImage src={user.avatarUrl} />
-                      <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                      <AvatarFallback className={cn("text-xs", official ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300")}>
                         {user.nom?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                   </td>
-                  <td className="px-3 py-3 text-zinc-600">{user.email}</td>
+                  <td className="px-3 py-3 text-zinc-600 dark:text-zinc-300">{user.email}</td>
                   <td className="px-3 py-3 text-zinc-600 font-mono text-xs">{formatDisplay(user.alanyaPhone)}</td>
                   <td className="px-3 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[user.typeCompte]}`}>
@@ -375,18 +397,19 @@ export default function UsersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-xs text-zinc-500">
+                  <td className="px-3 py-3 text-xs text-zinc-500 dark:text-zinc-400">
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr") : "-"}
                   </td>
                   <td className="px-3 py-3 text-right">
                     <ActionsMenu canSuper={isSuper} user={user} onView={() => router.push(`/users/${user.alanyaID}`)} onBan={() => setConfirmBan({ id: user.alanyaID, reason: "" })} onUnban={() => { unbanMutation.mutate(user.alanyaID); addToast({ title: "Utilisateur débanni", variant: "success" }); }} onRoleUp={() => setConfirmRole({ id: user.alanyaID, role: Math.min(user.typeCompte + 1, 2) })} onRoleDown={() => setConfirmRole({ id: user.alanyaID, role: Math.max(user.typeCompte - 1, 0) })} onDelete={() => setConfirmDelete(user.alanyaID)} />
                   </td>
                 </tr>
-              ))
+              );
+              })
               )}
               {!isLoading && !isFetching && data?.items.length === 0 && (
                 <tr><td colSpan={11} className="px-4 py-16 text-center">
-                  <div className="text-zinc-300 dark:text-zinc-600 mb-2">
+                  <div className="text-zinc-300 dark:text-zinc-700 mb-2">
                     <Search className="h-10 w-10 mx-auto" />
                   </div>
                   <p className="text-zinc-400 text-sm">Aucun utilisateur trouvé</p>
@@ -401,7 +424,7 @@ export default function UsersPage() {
       {/* Pagination */}
       {data && data.total > data.limit && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Page {data.page} sur {Math.ceil(data.total / data.limit)} ({data.total} résultats)
           </p>
           <div className="flex gap-2">
@@ -416,6 +439,14 @@ export default function UsersPage() {
       )}
 
       {/* Dialogs */}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        kind="users"
+        filterParams={exportFilterParams}
+        matchingTotal={data?.total}
+      />
+
       <Dialog open={!!confirmBan} onOpenChange={() => setConfirmBan(null)}>
         <DialogContent>
           <DialogHeader>
@@ -520,11 +551,11 @@ function ActionsMenu({ user, canSuper, onView, onBan, onUnban, onRoleUp, onRoleD
               <Eye className="h-4 w-4" /> Détails
             </button>
             {user.exclus ? (
-              <button onClick={() => { onUnban(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-emerald-600">
+              <button onClick={() => { onUnban(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" /> Débannir
               </button>
             ) : (
-              <button onClick={() => { onBan(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-red-600">
+              <button onClick={() => { onBan(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-red-600 dark:text-red-400">
                 <Ban className="h-4 w-4" /> Bannir
               </button>
             )}
@@ -541,7 +572,7 @@ function ActionsMenu({ user, canSuper, onView, onBan, onUnban, onRoleUp, onRoleD
             {canSuper && (
               <>
                 <hr className="my-1 border-zinc-200 dark:border-zinc-700" />
-                <button onClick={() => { onDelete(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/50 text-left text-red-600">
+                <button onClick={() => { onDelete(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/50 text-left text-red-600 dark:text-red-400">
                   <Trash2 className="h-4 w-4" /> Supprimer
                 </button>
               </>

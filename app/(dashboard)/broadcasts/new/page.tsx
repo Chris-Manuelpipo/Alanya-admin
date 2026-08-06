@@ -42,8 +42,9 @@ import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { StatusBackgroundPicker } from "@/components/preview/StatusBackgroundPicker";
 import type { PreviewContent } from "@/components/preview/PreviewStage";
 import type { PreviewLang } from "@/components/preview/types";
-import { useBroadcasts, useCreateBroadcast, useOfficialAccount } from "@/hooks/useBroadcasts";
+import { AccountBadgeLabel } from "@/components/account-badge";
 import { useCountries } from "@/hooks/useCountries";
+import { useBroadcasts, useCreateBroadcast, useOfficialAccount } from "@/hooks/useBroadcasts";
 import { statutMediaType } from "@/lib/broadcast-payload";
 import { formatCriteriaSummary } from "@/lib/criteria-labels";
 import { broadcastToPreview, PUSH_BODY_MAX } from "@/lib/preview/broadcast-to-preview";
@@ -296,7 +297,13 @@ export default function NewBroadcastPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={official.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
                   ) : null}
-                  <span className="text-sm font-medium">{official.nom}</span>
+                  <AccountBadgeLabel
+                    name={official.nom}
+                    accountType={official.accountType ?? 2}
+                    verificationStatus={official.verificationStatus ?? 0}
+                    fontSize={14}
+                    nameClassName="text-sm font-medium"
+                  />
                   <span className="text-xs text-zinc-500">Compte officiel</span>
                 </div>
               ) : (

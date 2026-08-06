@@ -3,6 +3,7 @@
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateRangeInputs } from "@/components/ui/date-range-inputs";
+import { PERIOD_OPTIONS } from "@/lib/period";
 
 interface GeoFilterBarProps {
   period: string;
@@ -24,10 +25,9 @@ export function GeoFilterBar({ period, onPeriodChange, dateFrom, dateTo, onDateF
         disabled={isFetching}
         className="flex h-10 w-44 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
-        <option value="">Toutes les périodes</option>
-        <option value="7">7 jours</option>
-        <option value="30">30 jours</option>
-        <option value="90">90 jours</option>
+        {PERIOD_OPTIONS.filter((o) => o.value !== "12m").map((o) => (
+          <option key={o.value || "all"} value={o.value}>{o.label}</option>
+        ))}
       </select>
       <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={onDateFromChange} onToChange={onDateToChange} disabled={isFetching} />
       <Button variant="outline" size="icon" onClick={onRefresh} disabled={isFetching} className="shrink-0">

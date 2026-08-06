@@ -15,7 +15,13 @@ import type { PreviewLang } from "@/components/preview/types";
 import { broadcastToPreview } from "@/lib/preview/broadcast-to-preview";
 import { formatCriteriaSummary } from "@/lib/criteria-labels";
 import { useCountries } from "@/hooks/useCountries";
-import { Megaphone, FileText, Image, Video, Radio, Calendar, Clock, Trash2 } from "lucide-react";
+import {
+  BroadcastFilters,
+  hasActiveBroadcastFilters,
+  type BroadcastFilterState,
+} from "@/components/broadcasts/BroadcastFilters";
+import { periodToRange } from "@/lib/period";
+import { Megaphone, FileText, Image, Video, Radio, Calendar, Clock, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Broadcast, ScheduledBroadcast } from "@/types";
 
 const mediaTypeIcons: Record<number, React.ElementType> = {
@@ -226,53 +232,180 @@ function ScheduledRow({ s }: { s: ScheduledBroadcast }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
+const DEFAULT_FILTERS: BroadcastFilterState = {
+  search: "",
+  kind: "",
+  type: "",
+  status: "",
+  idPays: "",
+  period: "",
+  dateFrom: "",
+  dateTo: "",
+  sort: "sent_at",
+  order: "desc",
+};
+
 export function BroadcastHistory() {
-  const { data, isLoading } = useBroadcasts();
+  const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<BroadcastFilterState>(DEFAULT_FILTERS);
+
+  const dateRange = useMemo(() => {
+    if (filters.period) return periodToRange(filters.period);
+    if (filters.dateFrom || filters.dateTo) {
+      return { from: filters.dateFrom, to: filters.dateTo };
+    }
+    return { from: undefined, to: undefined };
+  }, [filters.period, filters.dateFrom, filters.dateTo]);
+
+  const queryParams = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      search: filters.search || undefined,
+      kind: filters.kind || undefined,
+      type: filters.type || undefined,
+      status: filters.status || undefined,
+      idPays: filters.idPays || undefined,
+      from: dateRange.from,
+      to: dateRange.to,
+      sort: filters.sort !== "sent_at" ? filters.sort : undefined,
+      order: filters.order !== "desc" ? filters.order : undefined,
+    }),
+    [page, filters, dateRange],
+  );
+
+  const { data, isLoading, isFetching } = useBroadcasts(queryParams);
   const { data: countries } = useCountries();
 
   const countryName = (id: number) => countries?.find((c) => c.idPays === id)?.libelle;
+  const hasFilters = hasActiveBroadcastFilters(filters);
 
-  if (isLoading) {
-    return <BroadcastHistorySkeleton />;
+  function resetFilters() {
+    setFilters(DEFAULT_FILTERS);
+    setPage(1);
+  }
+
+  function handleSearch(value: string) {
+    setFilters((prev) => ({ ...prev, search: value }));
+    setPage(1);
+  }
+
+  function handleFilterChange<K extends keyof BroadcastFilterState>(key: K, value: BroadcastFilterState[K]) {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "period") {
+        if (value) {
+          const range = periodToRange(String(value));
+          next.dateFrom = range.from;
+          next.dateTo = range.to;
+        } else {
+          next.dateFrom = "";
+          next.dateTo = "";
+        }
+      }
+      if ((key === "dateFrom" || key === "dateTo") && value) {
+        next.period = "";
+      }
+      return next;
+    });
+    setPage(1);
   }
 
   const broadcasts = data?.items || [];
-  const scheduled = data?.scheduled || [];
-
-  if (broadcasts.length === 0 && scheduled.length === 0) {
-    return (
-      <Card className="border-0 bg-white shadow-sm dark:bg-zinc-900">
-        <CardContent className="p-12 text-center">
-          <Megaphone className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Aucune diffusion envoyée</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const scheduled = page === 1 && !hasFilters ? data?.scheduled || [] : [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const showPagination = total > PAGE_SIZE;
 
   return (
-    <Card className="border-0 bg-white shadow-sm dark:bg-zinc-900">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">
-          Historique ({data?.total || broadcasts.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {scheduled.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Programmées</p>
-            {scheduled.map((s) => (
-              <ScheduledRow key={s.jobId} s={s} />
-            ))}
-          </div>
-        )}
+    <div className="space-y-4">
+      <BroadcastFilters
+        filters={filters}
+        countries={countries}
+        isFetching={isFetching}
+        showFilters={showFilters}
+        onShowFiltersChange={setShowFilters}
+        onSearchChange={handleSearch}
+        onFilterChange={handleFilterChange}
+        onReset={resetFilters}
+      />
 
-        <div className="space-y-3">
-          {broadcasts.map((b) => (
-            <BroadcastRow key={b.id} b={b} countryName={countryName} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      {isLoading ? (
+        <BroadcastHistorySkeleton />
+      ) : broadcasts.length === 0 && scheduled.length === 0 ? (
+        <Card className="border-0 bg-white shadow-sm dark:bg-zinc-900">
+          <CardContent className="p-12 text-center">
+            <Megaphone className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {hasFilters ? "Aucune diffusion ne correspond aux filtres" : "Aucune diffusion envoyée"}
+            </p>
+            {hasFilters && (
+              <p className="mt-1 text-xs text-zinc-400">Essayez d&apos;élargir ou de réinitialiser les filtres</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card className="border-0 bg-white shadow-sm dark:bg-zinc-900">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Historique ({total.toLocaleString("fr-FR")})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {scheduled.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Programmées</p>
+                  {scheduled.map((s) => (
+                    <ScheduledRow key={s.jobId} s={s} />
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {broadcasts.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    Aucune diffusion sur cette page
+                  </p>
+                ) : (
+                  broadcasts.map((b) => (
+                    <BroadcastRow key={b.id} b={b} countryName={countryName} />
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {showPagination && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Page {page} sur {totalPages} ({total.toLocaleString("fr-FR")} résultats)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || isFetching}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Précédent
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages || isFetching}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Suivant <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

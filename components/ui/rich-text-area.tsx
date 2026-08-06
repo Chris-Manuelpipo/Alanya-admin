@@ -10,8 +10,7 @@ interface RichTextAreaProps {
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
-  disabled?: boolean;
-  /** Rendu du sélecteur emoji ; reçoit une fonction d'insertion au curseur. */
+  disabled?: boolean; 
   emojiPicker?: (insert: (text: string) => void) => React.ReactNode;
   textareaRef?: RefObject<HTMLTextAreaElement>;
   className?: string;

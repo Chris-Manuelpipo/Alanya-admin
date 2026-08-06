@@ -10,7 +10,9 @@ import { AnalyticsContentSkeleton } from "@/components/skeletons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Button } from "@/components/ui/button";
 import { DateRangeInputs } from "@/components/ui/date-range-inputs";
-import { periodToRange } from "@/lib/period";
+import { ExportDialog } from "@/components/export/ExportDialog";
+import type { AdminExportParams } from "@/lib/admin-export";
+import { PERIOD_OPTIONS, periodToRange } from "@/lib/period";
 import {
   MessageSquare,
   Phone,
@@ -25,6 +27,7 @@ import {
   Video,
   RefreshCw,
   Radio,
+  Download,
 } from "lucide-react";
 
 function formatDuration(s: number): string {
@@ -51,18 +54,36 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-semibold tracking-tight pt-2">{children}</h2>;
 }
 
-function today() { return new Date().toISOString().split("T")[0]; }
-function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split("T")[0]; }
-
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState("");
-  const [dateFrom, setDateFrom] = useState(daysAgo(7));
-  const [dateTo, setDateTo] = useState(today());
-  const { from, to } = useMemo(() => periodToRange(period), [period]);
-  const effectiveFrom = dateFrom || from;
-  const effectiveTo = dateTo || to;
+  const defaultRange = periodToRange("7d");
+  const [period, setPeriod] = useState("7d");
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
+  const [exportOpen, setExportOpen] = useState(false);
 
-  const { data, isLoading, isFetching, isError, refetch } = useAnalytics(effectiveFrom, effectiveTo);
+  const exportFilterParams: AdminExportParams = {
+    from: dateFrom,
+    to: dateTo,
+  };
+
+  function handlePeriodChange(value: string) {
+    setPeriod(value);
+    const { from, to } = periodToRange(value);
+    setDateFrom(from);
+    setDateTo(to);
+  }
+
+  function handleDateFromChange(value: string) {
+    setPeriod("");
+    setDateFrom(value);
+  }
+
+  function handleDateToChange(value: string) {
+    setPeriod("");
+    setDateTo(value);
+  }
+
+  const { data, isLoading, isFetching, isError, refetch } = useAnalytics(dateFrom, dateTo);
 
   const messagesTotal = useMemo(
     () => (data ? data.messagesByType.reduce((s, m) => s + m.count, 0) : 0),
@@ -129,7 +150,7 @@ export default function AnalyticsPage() {
     [data]
   );
 
-  const showSkeleton = isLoading || isFetching;
+  const showSkeleton = isLoading || (isFetching && !data);
 
   return (
     <div className="space-y-6">
@@ -143,16 +164,24 @@ export default function AnalyticsPage() {
         <div className="flex items-center gap-3">
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => handlePeriodChange(e.target.value)}
             disabled={isLoading}
             className="flex h-10 w-44 items-center rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
-            <option value="">Toutes les périodes</option>
-            <option value="7">7 jours</option>
-            <option value="30">30 jours</option>
-            <option value="90">90 jours</option>
+            {PERIOD_OPTIONS.map((o) => (
+              <option key={o.value || "all"} value={o.value}>{o.label}</option>
+            ))}
           </select>
-          <DateRangeInputs from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} disabled={isLoading} />
+          <DateRangeInputs
+            from={dateFrom}
+            to={dateTo}
+            onFromChange={handleDateFromChange}
+            onToChange={handleDateToChange}
+            disabled={isLoading}
+          />
+          <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} disabled={isLoading} className="shrink-0">
+            <Download className="h-4 w-4 mr-1" /> Exporter
+          </Button>
           <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} className="shrink-0">
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
@@ -249,6 +278,13 @@ export default function AnalyticsPage() {
           </div>
         </>
       )}
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        kind="analytics"
+        filterParams={exportFilterParams}
+      />
     </div>
   );
 }

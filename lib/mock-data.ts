@@ -7,6 +7,7 @@ import { mockMeetings } from '@/mock/meetings';
 import { mockMediaItems } from '@/mock/medias';
 import { mockCountries } from '@/mock/countries';
 import { api } from './api';
+import { normalizeApiDateRange } from '@/lib/period';
 import { toBroadcastApiPayload } from '@/lib/broadcast-payload';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
@@ -15,7 +16,8 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 export async function fetchStats(from?: string, to?: string): Promise<AdminStats> {
   if (USE_MOCK) return mockStats;
-  const res = await api.get('/admin/stats', { params: { from, to } });
+  const range = normalizeApiDateRange(from, to);
+  const res = await api.get('/admin/stats', { params: range });
   const d = res.data;
   return {
     totalUsers: d.counters?.totalUsers ?? d.totalUsers ?? 0,
@@ -58,9 +60,8 @@ export async function fetchActivityFeed(): Promise<ActivityEntry[]> {
 
 export async function fetchAnalytics(from?: string, to?: string): Promise<Analytics> {
   if (USE_MOCK) return mockAnalytics;
-  // Les clés backend sont déjà en camelCase → le transform snake→camel
-  // (lib/api.ts) les laisse intactes, on peut retourner res.data tel quel.
-  const res = await api.get('/admin/analytics', { params: { from, to } });
+  const range = normalizeApiDateRange(from, to);
+  const res = await api.get('/admin/analytics', { params: range });
   return res.data as Analytics;
 }
 
@@ -471,8 +472,27 @@ export async function uploadMedia(
 
 // ── Broadcasts ──
 
-export async function fetchBroadcasts(params: { page?: number; limit?: number } = {}): Promise<BroadcastsResponse> {
-  const res = await api.get('/admin/broadcasts', { params });
+export async function fetchBroadcasts(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  kind?: string;
+  type?: string;
+  status?: string;
+  idPays?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  order?: string;
+} = {}): Promise<BroadcastsResponse> {
+  const { from, to, ...rest } = params;
+  const apiParams: Record<string, string | number | undefined> = { ...rest };
+  if (from || to) {
+    const range = normalizeApiDateRange(from, to);
+    apiParams.from = range.from;
+    apiParams.to = range.to;
+  }
+  const res = await api.get('/admin/broadcasts', { params: apiParams });
   return res.data as BroadcastsResponse;
 }
 
@@ -533,9 +553,16 @@ export async function publishWelcomeConfig(): Promise<import('@/types').WelcomeC
   return res.data as import('@/types').WelcomeConfig;
 }
 
-export async function backfillWelcomeMessages(): Promise<{ queued: boolean; pending: number }> {
+export interface WelcomeBackfillResult {
+  queued: boolean;
+  pending: number;
+  /** Pourquoi rien n'a été mis en file : NOTHING_TO_DO | ALREADY_RUNNING. */
+  reason?: string;
+}
+
+export async function backfillWelcomeMessages(): Promise<WelcomeBackfillResult> {
   const res = await api.post('/admin/welcome/backfill');
-  return res.data as { queued: boolean; pending: number };
+  return res.data as WelcomeBackfillResult;
 }
 
 /**

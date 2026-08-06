@@ -1,16 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { GeoStats } from "@/components/geolocation/GeoStats";
 import { GeoFilterBar } from "@/components/geolocation/GeoFilterBar";
 import { useGeoData } from "@/hooks/useGeoData";
 import { GeolocationPageSkeleton } from "@/components/skeletons";
 import { periodToRange } from "@/lib/period";
 import { MapPin } from "lucide-react";
-
-function today() { return new Date().toISOString().split("T")[0]; }
-function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split("T")[0]; }
 
 const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
   ssr: false,
@@ -25,14 +22,29 @@ const WorldMap = dynamic(() => import("@/components/geolocation/WorldMap"), {
 });
 
 export default function GeolocationPage() {
-  const [period, setPeriod] = useState("");
-  const [dateFrom, setDateFrom] = useState(daysAgo(30));
-  const [dateTo, setDateTo] = useState(today());
-  const { from, to } = useMemo(() => periodToRange(period), [period]);
-  const effectiveFrom = dateFrom || from;
-  const effectiveTo = dateTo || to;
+  const defaultRange = periodToRange("30d");
+  const [period, setPeriod] = useState("30d");
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
 
-  const { data: geoData, isLoading, isFetching, isError, refetch } = useGeoData(effectiveFrom, effectiveTo);
+  function handlePeriodChange(value: string) {
+    setPeriod(value);
+    const { from, to } = periodToRange(value);
+    setDateFrom(from);
+    setDateTo(to);
+  }
+
+  function handleDateFromChange(value: string) {
+    setPeriod("");
+    setDateFrom(value);
+  }
+
+  function handleDateToChange(value: string) {
+    setPeriod("");
+    setDateTo(value);
+  }
+
+  const { data: geoData, isLoading, isFetching, isError, refetch } = useGeoData(dateFrom, dateTo);
 
   return (
     <div className="space-y-6">
@@ -48,11 +60,11 @@ export default function GeolocationPage() {
         </div>
         <GeoFilterBar
           period={period}
-          onPeriodChange={setPeriod}
+          onPeriodChange={handlePeriodChange}
           dateFrom={dateFrom}
           dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
+          onDateFromChange={handleDateFromChange}
+          onDateToChange={handleDateToChange}
           isFetching={isFetching}
           onRefresh={() => refetch()}
         />

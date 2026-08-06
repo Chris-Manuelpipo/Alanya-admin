@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
 import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
+import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
+import { cn } from "@/lib/utils";
 import { useIsSuperAdmin, useIsAdmin } from "@/hooks/useAdminUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,8 @@ export default function UserDetailPage() {
     );
   }
 
+  const official = isOfficialAlanyaAccount(user);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -83,7 +87,15 @@ export default function UserDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{user.nom}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            <AccountBadgeLabel
+              name={user.nom}
+              accountType={user.accountType ?? 0}
+              verificationStatus={user.verificationStatus ?? 0}
+              fontSize={24}
+              nameClassName="font-bold tracking-tight"
+            />
+          </h1>
           <p className="text-sm text-zinc-500">@{user.pseudo} · {formatDisplay(user.alanyaPhone)}</p>
         </div>
       </div>
@@ -91,12 +103,12 @@ export default function UserDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
         <div className="lg:col-span-1 space-y-6">
-          <Card className="border-0 shadow-sm">
+          <Card className={cn("border-0 shadow-sm", official && "bg-amber-50/80 dark:bg-amber-950/20 ring-1 ring-amber-200/50 dark:ring-amber-800/40")}>
             <CardContent className="p-6 text-center">
               <button onClick={() => setPhotoPreview(user.avatarUrl)} className="relative group mx-auto mb-4 block">
-                <Avatar className="h-24 w-24">
+                <Avatar className={cn("h-24 w-24", official && "ring-2 ring-amber-300/60 dark:ring-amber-700/50")}>
                   <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback className="text-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  <AvatarFallback className={cn("text-2xl", official ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300")}>
                     {user.nom?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
@@ -104,23 +116,36 @@ export default function UserDetailPage() {
                   <ZoomIn className="h-6 w-6 text-white" />
                 </div>
               </button>
-              <h2 className="text-xl font-bold">{user.nom}</h2>
+              <h2 className="text-xl font-bold">
+                <AccountBadgeLabel
+                  name={user.nom}
+                  accountType={user.accountType ?? 0}
+                  verificationStatus={user.verificationStatus ?? 0}
+                  fontSize={20}
+                  nameClassName="font-bold"
+                  className="justify-center"
+                />
+              </h2>
               <p className="text-sm text-zinc-500">@{user.pseudo}</p>
               <div className="mt-4 flex justify-center gap-2 flex-wrap">
                 <Badge className={user.isOnline ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-0" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border-0"}>
                   {user.isOnline ? "En ligne" : "Hors ligne"}
                 </Badge>
-                {(user.accountType ?? 0) > 0 && (
+                {official ? (
+                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800/60">
+                    {accountTypeLabels[user.accountType ?? 0]}
+                  </Badge>
+                ) : (user.accountType ?? 0) > 0 ? (
                   <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300 border-0">
                     {accountTypeLabels[user.accountType ?? 0]}
                   </Badge>
-                )}
+                ) : null}
                 {(user.verificationStatus ?? 0) === 2 && (
                   <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border-0">
                     Vérifié
                   </Badge>
                 )}
-                {user.exclus && <Badge variant="destructive">Banni</Badge>}
+                {user.exclus ? <Badge variant="destructive">Banni</Badge> : null}
               </div>
             </CardContent>
           </Card>
@@ -140,7 +165,7 @@ export default function UserDetailPage() {
               )}
               <Row icon={Calendar} label={`Inscrit le ${user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr") : "-"}`} />
               <Row icon={Clock} label={`Dernière activité : ${user.lastSeen ? new Date(user.lastSeen).toLocaleString("fr") : "-"}`} />
-              {user.exclus && (
+              {user.exclus ? (
                 <div className="flex items-start gap-3 text-red-600 pt-2 border-t">
                   <BanIcon className="h-4 w-4 mt-0.5 shrink-0" />
                   <div>
@@ -148,7 +173,7 @@ export default function UserDetailPage() {
                     {user.excludeReason && <p className="text-xs text-zinc-500 mt-1">Raison : {user.excludeReason}</p>}
                   </div>
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </Card>
 

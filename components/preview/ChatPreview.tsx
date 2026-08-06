@@ -1,10 +1,10 @@
 "use client";
 
 import { RichTextMessage } from "@/components/ui/rich-text-message";
+import { AccountBadgeIcon } from "@/components/account-badge";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
-  BadgeCheck,
   FileText,
   Megaphone,
   Mic,
@@ -130,12 +130,12 @@ function ChatAppBar({
         <span className="truncate text-[16px] font-semibold leading-tight">{name}</span>
         {official ? (
           // AccountBadgeLabel : 4 px d'écart, taille fontSize + 2 = 18.
-          <BadgeCheck
+          <AccountBadgeIcon
+            accountType={2}
+            verificationStatus={0}
             size={18}
-            className="ml-1 shrink-0"
-            style={{ color: "var(--app-seal)" }}
-            fill="var(--app-seal)"
-            stroke="var(--app-surface)"
+            className="ml-1"
+            sealStroke="var(--app-surface)"
           />
         ) : null}
       </div>

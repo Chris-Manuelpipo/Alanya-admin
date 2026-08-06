@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   fetchBroadcasts,
   fetchBroadcast,
@@ -14,6 +14,15 @@ import type { BroadcastFormData, BroadcastCriteria } from '@/types';
 interface BroadcastsParams {
   page?: number;
   limit?: number;
+  search?: string;
+  kind?: string;
+  type?: string;
+  status?: string;
+  idPays?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  order?: string;
 }
 
 const ACTIVE_STATUSES = new Set(['preparing', 'queued', 'running']);
@@ -22,6 +31,7 @@ export function useBroadcasts(params: BroadcastsParams = {}) {
   return useQuery({
     queryKey: ['admin-broadcasts', params],
     queryFn: () => fetchBroadcasts(params),
+    placeholderData: keepPreviousData,
   });
 }
 
