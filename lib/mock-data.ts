@@ -1,6 +1,7 @@
-import { AdminStats, Analytics, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
+import { AdminStats, Analytics, TripStats, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
+import { mockTripStats } from '@/mock/trips';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
 import { mockGroups, mockGroupDetail } from '@/mock/groups';
 import { mockMeetings } from '@/mock/meetings';
@@ -63,6 +64,13 @@ export async function fetchAnalytics(from?: string, to?: string): Promise<Analyt
   const range = normalizeApiDateRange(from, to);
   const res = await api.get('/admin/analytics', { params: range });
   return res.data as Analytics;
+}
+
+export async function fetchTripStats(from?: string, to?: string): Promise<TripStats> {
+  if (USE_MOCK) return mockTripStats;
+  const range = normalizeApiDateRange(from, to);
+  const res = await api.get('/admin/trips', { params: range });
+  return res.data as TripStats;
 }
 
 // ── Users ──

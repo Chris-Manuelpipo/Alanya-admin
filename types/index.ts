@@ -233,6 +233,40 @@ export interface Analytics {
   previousPeriod: { from: string; to: string };
 }
 
+/** Compteurs agrégés trajets — GET /api/admin/trips. Aucune identité. */
+export interface TripKindCount {
+  kind: "taxi" | "walk" | "sos";
+  count: number;
+}
+
+export interface TripCloseReasonCount {
+  reason: string;
+  count: number;
+}
+
+export interface TripStats {
+  openNow: number;
+  started: number;
+  startedPrevious: number;
+  startedByDay: { date: string; count: number }[];
+  confirmed: number;
+  confirmedRate: number;
+  alerted: number;
+  alertedRate: number;
+  sos: number;
+  closed: number;
+  durationMedianSec: number;
+  durationP90Sec: number;
+  avgExtensions: number;
+  alertsClosed: number;
+  alertsResolved: number;
+  alertsResolvedMedianSec: number;
+  byKind: TripKindCount[];
+  byCloseReason: TripCloseReasonCount[];
+  period: { from: string; to: string };
+  previousPeriod: { from: string; to: string };
+}
+
 export interface Group {
   conversID: number;
   groupName: string;

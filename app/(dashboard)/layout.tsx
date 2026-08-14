@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   Settings,
   MapPin,
+  Route,
   LogOut,
   ChevronLeft,
   Menu,
@@ -28,6 +29,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/trips", label: "Trajets", icon: Route },
   { href: "/users", label: "Utilisateurs", icon: Users },
   { href: "/groups", label: "Groupes", icon: UsersRound },
   { href: "/meetings", label: "Réunions", icon: Video },
@@ -68,9 +70,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const user = getAdminUser();
   const navItems = isSuper
     ? [
-        ...baseNavItems.slice(0, 8),
+        ...baseNavItems.slice(0, 9),
         ...superNavItems,
-        ...baseNavItems.slice(8),
+        ...baseNavItems.slice(9),
       ]
     : baseNavItems;
 
