@@ -460,7 +460,9 @@ export interface BroadcastsResponse {
 export type WelcomeBlockType = 'text' | 'image' | 'video' | 'cta';
 
 export interface WelcomeCtaButton {
+  /** @deprecated Dérivé de `translations.fr` — voir `WelcomeBlock.ctaTranslations`. */
   labelFr: string;
+  /** @deprecated Dérivé de `translations.en`. */
   labelEn: string;
   action: 'route' | 'url';
   target: string;
@@ -470,8 +472,14 @@ export interface WelcomeBlock {
   id?: number;
   sortOrder: number;
   blockType: WelcomeBlockType;
+  /** @deprecated Dérivé de `translations.fr` le temps de la double écriture. */
   contentFr?: string;
+  /** @deprecated Dérivé de `translations.en`. */
   contentEn?: string;
+  /** Corps du bloc par locale — forme de référence depuis la migration 053. */
+  translations?: Translations;
+  /** Libellés des boutons, un enregistrement par bouton, dans l'ordre du tableau. */
+  ctaTranslations?: Translations[];
   mediaUrl?: string;
   ctaJson?: { buttons: WelcomeCtaButton[] };
 }
@@ -501,8 +509,12 @@ export interface WelcomeStatusConfig {
   enabled: boolean;
   /** 0 texte · 1 image · 2 vidéo */
   type: number;
+  /** @deprecated Dérivé de `translations.fr` le temps de la double écriture. */
   textFr: string;
+  /** @deprecated Dérivé de `translations.en`. */
   textEn: string;
+  /** Texte par locale — forme de référence depuis la migration 053. */
+  translations?: Translations;
   mediaUrl: string;
   /** `#RRGGBB` ; vide → indigo de marque `#3F51B5`. */
   backgroundColor: string;

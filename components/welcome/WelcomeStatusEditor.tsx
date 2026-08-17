@@ -15,6 +15,12 @@ import type { PreviewLang } from "@/components/preview/types";
 import { useSaveWelcomeStatus, useWelcomeStatus } from "@/hooks/useWelcome";
 import { cn } from "@/lib/utils";
 import { WELCOME_STATUS_TEXT_MAX, type WelcomeStatusConfig } from "@/types";
+import {
+  CONTENT_LOCALES,
+  CONTENT_LOCALE_LABELS,
+  missingRequiredLocales,
+  resolveTranslation,
+} from "@/lib/content-locales";
 
 const TYPES = [
   { value: 0, label: "Texte", icon: FileText },
@@ -27,6 +33,7 @@ const EMPTY: WelcomeStatusConfig = {
   type: 0,
   textFr: "",
   textEn: "",
+  translations: {},
   mediaUrl: "",
   backgroundColor: "",
   updatedAt: null,
@@ -67,23 +74,31 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
     setDirty(true);
   }
 
-  const activeText = lang === "fr" ? form.textFr : form.textEn;
+  const translations = form.translations ?? {};
+  const activeText = translations[lang] ?? "";
   const remaining = WELCOME_STATUS_TEXT_MAX - activeText.length;
 
   const contentError = useMemo(() => {
-    if (form.type === 0 && !form.textFr.trim()) {
+    const t = form.translations ?? {};
+    if (form.type === 0 && !t.fr?.trim()) {
       return "Un statut texte exige un texte en français.";
     }
-    // Le statut conserve les deux langues et l'app choisit à l'affichage :
-    // sans traduction, l'anglophone verrait du français.
-    if (form.textFr.trim() && !form.textEn.trim()) {
-      return "La traduction anglaise est obligatoire.";
+    // Le français et l'anglais sont exigés ; les autres langues retombent sur
+    // l'anglais par la chaîne de repli, les exiger bloquerait la publication.
+    const missing = t.fr?.trim() ? missingRequiredLocales(t) : [];
+    if (missing.length > 0) {
+      return `Traduction obligatoire manquante : ${missing
+        .map((l) => CONTENT_LOCALE_LABELS[l])
+        .join(", ")}.`;
     }
     if (form.type !== 0 && !form.mediaUrl.trim()) {
       return `Un statut ${form.type === 1 ? "image" : "vidéo"} exige un média.`;
     }
-    if (form.textFr.length > WELCOME_STATUS_TEXT_MAX || form.textEn.length > WELCOME_STATUS_TEXT_MAX) {
-      return `Texte limité à ${WELCOME_STATUS_TEXT_MAX} caractères.`;
+    const tooLong = CONTENT_LOCALES.find(
+      (l) => (t[l] ?? "").length > WELCOME_STATUS_TEXT_MAX,
+    );
+    if (tooLong) {
+      return `Texte limité à ${WELCOME_STATUS_TEXT_MAX} caractères (${CONTENT_LOCALE_LABELS[tooLong]}).`;
     }
     return null;
   }, [form]);
@@ -93,7 +108,7 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
       mode: "status",
       // Le statut porte les deux langues ; l'app choisit selon la locale du
       // téléphone, avec repli sur le français si l'anglais est vide.
-      text: lang === "en" ? form.textEn.trim() || form.textFr : form.textFr,
+      text: resolveTranslation(form.translations ?? {}, lang),
       type: form.type,
       mediaUrl: form.mediaUrl,
       backgroundColor: form.backgroundColor,
@@ -205,7 +220,7 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                       : "Légende EN"}
                 </Label>
                 <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
-                  {(["fr", "en"] as const).map((l) => (
+                  {CONTENT_LOCALES.map((l) => (
                     <button
                       key={l}
                       type="button"
@@ -230,7 +245,12 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                 rows={3}
                 placeholder={lang === "fr" ? "Bienvenue sur Alanya !" : "Welcome to Alanya!"}
                 onChange={(e) =>
-                  patch(lang === "fr" ? { textFr: e.target.value } : { textEn: e.target.value })
+                  patch({
+                    translations: {
+                      ...(form.translations ?? {}),
+                      [lang]: e.target.value,
+                    },
+                  })
                 }
                 className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -240,7 +260,8 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                   {remaining}
                 </span>
               </div>
-              {form.textFr.trim() && !form.textEn.trim() && (
+              {(form.translations?.fr ?? "").trim() &&
+                missingRequiredLocales(form.translations ?? {}).length > 0 && (
                 <p className="text-xs text-red-600 dark:text-red-400">
                   Traduction anglaise obligatoire.
                 </p>

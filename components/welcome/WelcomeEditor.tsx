@@ -20,6 +20,11 @@ import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import type { PreviewContent } from "@/components/preview/PreviewStage";
 import type { PreviewLang } from "@/components/preview/types";
 import { welcomeBlocksToMessages } from "@/lib/preview/welcome-blocks-to-messages";
+import {
+  CONTENT_LOCALE_LABELS,
+  missingRequiredLocales,
+  type ContentLocale,
+} from "@/lib/content-locales";
 import { cn } from "@/lib/utils";
 import type { WelcomeBlock, WelcomeBlockType, WelcomeCtaButton } from "@/types";
 
@@ -46,9 +51,12 @@ function emptyBlock(type: WelcomeBlockType, sortOrder: number): WelcomeBlock {
           { labelFr: "Compléter mon profil", labelEn: "Complete my profile", action: "route", target: "profile" },
         ],
       },
+      ctaTranslations: [
+        { fr: "Compléter mon profil", en: "Complete my profile" },
+      ],
     };
   }
-  return { sortOrder, blockType: type, contentFr: "", contentEn: "" };
+  return { sortOrder, blockType: type, translations: {} };
 }
 
 interface WelcomeEditorProps {
@@ -127,7 +135,8 @@ export function WelcomeEditor({
     updateBlock(blockIndex, { ctaJson: { buttons } });
   }
 
-  const contentKey = lang === "fr" ? "contentFr" : "contentEn";
+  // Plus de `contentKey` calculé : le corps vit dans `translations[lang]`,
+  // ce qui rend l'ajout d'une langue transparent pour ce composant.
 
   return (
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -173,7 +182,6 @@ export function WelcomeEditor({
               total={sorted.length}
               lang={lang}
               disabled={disabled}
-              contentKey={contentKey}
               onUpdate={(patch) => updateBlock(index, patch)}
               onMove={(dir) => moveBlock(index, dir)}
               onRemove={() => removeBlock(index)}
@@ -203,9 +211,8 @@ interface BlockCardProps {
   block: WelcomeBlock;
   index: number;
   total: number;
-  lang: PreviewLang;
+  lang: ContentLocale;
   disabled?: boolean;
-  contentKey: "contentFr" | "contentEn";
   onUpdate: (patch: Partial<WelcomeBlock>) => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
@@ -220,7 +227,6 @@ function BlockCard({
   total,
   lang,
   disabled,
-  contentKey,
   onUpdate,
   onMove,
   onRemove,
@@ -290,15 +296,24 @@ function BlockCard({
                   : "Légende EN"}
             </Label>
             <RichTextArea
-              value={(block[contentKey] as string) ?? ""}
+              value={block.translations?.[lang] ?? ""}
               disabled={disabled}
-              onChange={(v) => onUpdate({ [contentKey]: v })}
+              onChange={(v) =>
+                onUpdate({
+                  translations: { ...(block.translations ?? {}), [lang]: v },
+                })
+              }
               placeholder={block.blockType === "text" ? "Message…" : "Légende (optionnelle)"}
               rows={block.blockType === "text" ? 5 : 3}
             />
-            {(block.contentFr ?? "").trim() && !((block.contentEn ?? "").trim()) && (
+            {Object.values(block.translations ?? {}).some((v) => v?.trim()) &&
+              missingRequiredLocales(block.translations ?? {}).length > 0 && (
               <p className="text-xs text-red-600 dark:text-red-400">
-                Traduction anglaise obligatoire pour publier.
+                Traduction obligatoire pour publier :{" "}
+                {missingRequiredLocales(block.translations ?? {})
+                  .map((l) => CONTENT_LOCALE_LABELS[l])
+                  .join(", ")}
+                .
               </p>
             )}
           </div>
