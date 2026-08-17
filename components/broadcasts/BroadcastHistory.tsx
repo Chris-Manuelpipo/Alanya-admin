@@ -50,8 +50,9 @@ function previewOf(
   const result = broadcastToPreview(
     {
       kind: b.kind ?? 0,
-      contentFr: b.content,
-      contentEn: b.contentEn,
+      // Historique : les diffusions déjà publiées n'ont que les colonnes
+      // héritées, la chaîne de repli fait le reste pour les autres langues.
+      translations: { fr: b.content ?? undefined, en: b.contentEn ?? undefined },
       type: b.type,
       mediaUrl: b.mediaUrl,
     },

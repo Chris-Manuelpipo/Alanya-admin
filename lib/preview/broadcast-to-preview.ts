@@ -1,12 +1,12 @@
 import type { PreviewLang, PreviewMessage } from "@/components/preview/types";
 import { statutMediaType } from "@/lib/broadcast-payload";
-import { pickLocalized } from "./localized";
+import type { Translations } from "@/lib/content-locales";
+import { resolveLocalized } from "./localized";
 
 export interface BroadcastPreviewInput {
   /** 0 = message privé, 1 = statut 24 h. */
   kind: number;
-  contentFr: string;
-  contentEn?: string | null;
+  translations: Translations;
   /** Type média du message (0 texte · 1 image · 2 vidéo · 3 audio · 4 fichier). */
   type: number;
   mediaUrl?: string | null;
@@ -36,7 +36,7 @@ export function broadcastToPreview(
   input: BroadcastPreviewInput,
   lang: PreviewLang,
 ): BroadcastPreviewResult {
-  const text = pickLocalized(input.contentFr, input.contentEn, lang);
+  const text = resolveLocalized(input.translations, lang);
   const mediaUrl = input.mediaUrl?.trim() || null;
 
   if (input.kind === 1) {
@@ -62,6 +62,12 @@ export const PUSH_BODY_MAX = 120;
 /** Corps par défaut quand le contenu est vide — `defaultBroadcastPushBody`. */
 export function defaultPushBody(kind: number, lang: PreviewLang): string {
   const isStatus = Number(kind) === 1;
-  if (lang === "en") return isStatus ? "New status" : "New announcement";
-  return isStatus ? "Nouveau statut" : "Nouvelle annonce";
+  switch (lang) {
+    case "en":
+      return isStatus ? "New status" : "New announcement";
+    case "zh":
+      return isStatus ? "\u65b0\u52a8\u6001" : "\u65b0\u516c\u544a";
+    default:
+      return isStatus ? "Nouveau statut" : "Nouvelle annonce";
+  }
 }

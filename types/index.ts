@@ -1,3 +1,4 @@
+import type { Translations } from "@/lib/content-locales";
 export interface AdminStats {
   totalUsers: number;
   onlineUsers: number;
@@ -427,8 +428,12 @@ export interface ScheduledBroadcast {
 
 export interface BroadcastFormData {
   senderId: number;
+  /** @deprecated Dérivé de `translations.fr` ; conservé le temps que le backend garde ses colonnes héritées. */
   content: string;
+  /** @deprecated Dérivé de `translations.en` — voir `content`. */
   contentEn?: string | null;
+  /** Contenu par locale — forme de référence depuis la migration 053. */
+  translations?: Translations;
   type: number;
   mediaUrl?: string;
   /** Statut uniquement — `#RRGGBB` ; vide = indigo de marque. */

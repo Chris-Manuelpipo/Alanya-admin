@@ -23,6 +23,26 @@ import {
 } from "./types";
 
 /**
+ * Libellés propres à l'aperçu, dans les langues du contenu officiel.
+ *
+ * Ils ne viennent pas des ARB de l'application : l'aperçu reconstitue ce que
+ * l'utilisateur verra, et l'admin n'embarque pas les traductions du client.
+ * Un enregistrement complet plutôt qu'un ternaire, pour qu'ajouter une langue
+ * échoue à la compilation si un libellé manque.
+ */
+const TODAY_LABEL: Record<PreviewLang, string> = {
+  fr: "Aujourd'hui",
+  en: "Today",
+  zh: "\u4eca\u5929",
+};
+
+const BROADCAST_NOTICE: Record<PreviewLang, string> = {
+  fr: "Ce compte diffuse des annonces. Vous ne pouvez pas y r\u00e9pondre.",
+  en: "This account sends announcements. You cannot reply.",
+  zh: "\u6b64\u8d26\u53f7\u7528\u4e8e\u53d1\u5e03\u516c\u544a\uff0c\u65e0\u6cd5\u56de\u590d\u3002",
+};
+
+/**
  * Rendu de la conversation, transposé du code Flutter.
  *
  * Chaque cote provient de :
@@ -86,7 +106,7 @@ export function ChatPreview({
             </p>
           ) : (
             <>
-              <DateSeparator label={lang === "en" ? "Today" : "Aujourd'hui"} />
+              <DateSeparator label={TODAY_LABEL[lang]} />
               {messages.map((msg, i) => (
                 <Bubble key={i} message={msg} time={time} />
               ))}
@@ -379,9 +399,7 @@ function OfficialLockBanner({ lang }: { lang: PreviewLang }) {
     >
       <Megaphone size={18} className="shrink-0" style={{ color: "var(--app-on-surface-variant)" }} />
       <span className="text-[12px] leading-snug" style={{ color: "var(--app-on-surface-variant)" }}>
-        {lang === "en"
-          ? "This account sends announcements. You cannot reply."
-          : "Ce compte diffuse des annonces. Vous ne pouvez pas y répondre."}
+        {BROADCAST_NOTICE[lang]}
       </span>
     </div>
   );

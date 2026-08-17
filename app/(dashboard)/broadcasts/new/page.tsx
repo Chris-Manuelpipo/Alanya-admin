@@ -29,6 +29,29 @@ import {
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { FileUpload } from "@/components/ui/file-upload";
 import { LangTabs } from "@/components/ui/lang-tabs";
+import {
+  CONTENT_LOCALE_LABELS,
+  missingRequiredLocales,
+  type ContentLocale,
+  resolveTranslation,
+  type Translations,
+} from "@/lib/content-locales";
+
+/**
+ * Amorces du champ de saisie, par langue.
+ *
+ * Un enregistrement complet plutôt qu'un ternaire imbriqué : ajouter une
+ * langue échoue alors à la compilation si son amorce manque, au lieu de
+ * retomber silencieusement sur l'anglais.
+ */
+const PLACEHOLDERS: Record<
+  ContentLocale,
+  { status: string; message: string }
+> = {
+  fr: { status: "Votre statut\u2026", message: "Votre message\u2026" },
+  en: { status: "Your status\u2026", message: "Your message\u2026" },
+  zh: { status: "\u60a8\u7684\u52a8\u6001\u2026", message: "\u60a8\u7684\u6d88\u606f\u2026" },
+};
 import { RichTextArea } from "@/components/ui/rich-text-area";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -78,8 +101,9 @@ export default function NewBroadcastPage() {
   const { data: countries } = useCountries();
 
   const [clientId, setClientId] = useState(newClientId);
-  const [contentFr, setContentFr] = useState("");
-  const [contentEn, setContentEn] = useState("");
+  // Un enregistrement par locale plutôt qu'un useState par langue : ajouter
+  // une langue dans CONTENT_LOCALES suffit désormais, sans toucher ce composant.
+  const [translations, setTranslations] = useState<Translations>({});
   const [lang, setLang] = useState<PreviewLang>("fr");
   const [nature, setNature] = useState(0);
   const [mediaUrl, setMediaUrl] = useState("");
@@ -93,8 +117,9 @@ export default function NewBroadcastPage() {
   const criteria = useMemo(() => draftToCriteria(criteriaDrafts), [criteriaDrafts]);
   const { count: estimatedCount, loading: estimateLoading } = useRecipientEstimate(criteria);
 
-  const activeContent = lang === "fr" ? contentFr : contentEn;
-  const setActiveContent = lang === "fr" ? setContentFr : setContentEn;
+  const activeContent = translations[lang] ?? "";
+  const setActiveContent = (value: string) =>
+    setTranslations((prev: Translations) => ({ ...prev, [lang]: value }));
 
   const criteriaSummary = formatCriteriaSummary(criteria, {
     countryName: (id) => countries?.find((c) => c.idPays === id)?.libelle,
@@ -106,15 +131,14 @@ export default function NewBroadcastPage() {
       broadcastToPreview(
         {
           kind: isStatut ? 1 : 0,
-          contentFr,
-          contentEn,
+          translations,
           type: isStatut ? statutMediaType(mediaUrl) : nature,
           mediaUrl,
           backgroundColor,
         },
         lang,
       ),
-    [isStatut, contentFr, contentEn, nature, mediaUrl, backgroundColor, lang],
+    [isStatut, translations, nature, mediaUrl, backgroundColor, lang],
   );
 
   const previewContent = useMemo<PreviewContent>(() => {
@@ -142,18 +166,19 @@ export default function NewBroadcastPage() {
   const mediaRequired = nature === 1 || nature === 2;
   const errors = useMemo(() => {
     const list = criteriaErrors(criteriaDrafts);
-    if (!contentFr.trim()) list.push("Le contenu en français est obligatoire.");
-    // Les deux langues sont exigées : sans traduction, les anglophones
-    // recevraient le texte français sans que rien ne le signale.
-    if (contentFr.trim() && !contentEn.trim()) {
-      list.push("La traduction anglaise est obligatoire.");
+    // Français et anglais restent obligatoires : sans eux la chaîne de repli
+    // n'a rien à servir. Les autres langues sont facultatives — les exiger
+    // bloquerait toute publication jusqu'à ce qu'un traducteur soit
+    // disponible, et le repli couvre leur absence.
+    for (const loc of missingRequiredLocales(translations)) {
+      list.push(`Le contenu en ${CONTENT_LOCALE_LABELS[loc]} est obligatoire.`);
     }
     if (mediaRequired && !mediaUrl.trim()) {
       list.push(`Un média est requis pour une diffusion de type ${nature === 1 ? "image" : "vidéo"}.`);
     }
     if (!official) list.push("Aucun compte officiel n'existe : la diffusion est impossible.");
     return list;
-  }, [criteriaDrafts, contentFr, contentEn, mediaRequired, mediaUrl, nature, official]);
+  }, [criteriaDrafts, translations, mediaRequired, mediaUrl, nature, official]);
 
   const canSend =
     errors.length === 0 && !createMutation.isPending && !estimateLoading && estimatedCount != null;
@@ -163,8 +188,9 @@ export default function NewBroadcastPage() {
 
     const data: BroadcastFormData = {
       senderId: Number(official.alanyaID),
-      content: contentFr.trim(),
-      contentEn: contentEn.trim() || undefined,
+      content: translations.fr?.trim() ?? "",
+      contentEn: translations.en?.trim() || undefined,
+      translations,
       type: isStatut ? statutMediaType(mediaUrl) : nature,
       mediaUrl: mediaUrl || undefined,
       backgroundColor: backgroundColor || undefined,
@@ -223,7 +249,7 @@ export default function NewBroadcastPage() {
     setClientId(newClientId());
   }, []);
 
-  const pushBody = (lang === "en" && contentEn.trim() ? contentEn : contentFr).trim();
+  const pushBody = resolveTranslation(translations, lang).trim();
 
   return (
     <div className="space-y-6">
@@ -323,22 +349,14 @@ export default function NewBroadcastPage() {
           <Section
             step={2}
             title="Contenu"
-            description="Le français est obligatoire, l'anglais est servi aux appareils en locale EN"
+            description="Français et anglais obligatoires ; les autres langues retombent sur l'anglais"
           >
             <div className="space-y-3">
-              <LangTabs value={lang} onChange={setLang} />
+              <LangTabs value={lang} onChange={setLang} translations={translations} />
               <RichTextArea
                 value={activeContent}
                 onChange={setActiveContent}
-                placeholder={
-                  lang === "fr"
-                    ? isStatut
-                      ? "Votre statut…"
-                      : "Votre message…"
-                    : isStatut
-                      ? "Your status…"
-                      : "Your message…"
-                }
+                placeholder={PLACEHOLDERS[lang][isStatut ? "status" : "message"]}
                 rows={6}
                 disabled={createMutation.isPending}
                 emojiPicker={(insert) => (
@@ -346,11 +364,16 @@ export default function NewBroadcastPage() {
                 )}
               />
 
-              {!contentEn.trim() && contentFr.trim() && (
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  Traduction anglaise obligatoire — passez à l&apos;onglet EN.
-                </p>
-              )}
+              {missingRequiredLocales(translations).length > 0 &&
+                Object.values(translations).some((v) => v?.trim()) && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    Traduction obligatoire manquante :{" "}
+                    {missingRequiredLocales(translations)
+                      .map((l) => CONTENT_LOCALE_LABELS[l])
+                      .join(", ")}
+                    .
+                  </p>
+                )}
 
               {!isStatut && pushBody.length > PUSH_BODY_MAX && (
                 <p className="text-xs text-zinc-500">

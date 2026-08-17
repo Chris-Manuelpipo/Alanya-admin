@@ -1,3 +1,5 @@
+import type { ContentLocale } from "@/lib/content-locales";
+
 /**
  * Format de message de l'aperçu.
  *
@@ -57,4 +59,10 @@ export function parseCtaPayload(raw: string | null | undefined): PreviewCtaButto
 /** Thème de l'app rendu dans l'aperçu — indépendant du thème de l'admin. */
 export type AppTheme = "light" | "dark";
 
-export type PreviewLang = "fr" | "en";
+/**
+ * Langue de l'aperçu — alignée sur les langues du contenu officiel.
+ *
+ * Alias plutôt qu'union figée : ajouter une langue dans `CONTENT_LOCALES` la
+ * rend aussitôt prévisualisable, sans qu'un second endroit ne dérive.
+ */
+export type PreviewLang = ContentLocale;
