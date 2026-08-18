@@ -268,6 +268,32 @@ export interface TripStats {
   previousPeriod: { from: string; to: string };
 }
 
+/** Rétention des traces GPS. Des volumes, jamais un trajet nommé. */
+export interface TripRetention {
+  policy: {
+    pointsHours: number;
+    pointsIncidentDays: number;
+    tripMonths: number;
+  };
+  /** Tout ce qui dort en base, trajets en cours compris. */
+  stored: { points: number; trips: number; oldestPointAt: string | null };
+  /** Ce que le prochain balayage nocturne effacera. */
+  expired: { points: number; trips: number };
+  /** Ce qu'une purge manuelle immédiate effacerait : tous les trajets clos. */
+  closed: { points: number; trips: number };
+  purgedTrips: number;
+  runs: TripPurgeRun[];
+  lastRun?: TripPurgeRun;
+}
+
+export interface TripPurgeRun {
+  at: string;
+  scope: "retention" | "all";
+  by: string | null;
+  points: number;
+  trips: number;
+}
+
 export interface Group {
   conversID: number;
   groupName: string;

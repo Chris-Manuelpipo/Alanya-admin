@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AreaChart } from "@/components/dashboard/AreaChart";
 import { PieChart } from "@/components/dashboard/PieChart";
@@ -19,6 +20,7 @@ import {
   ShieldCheck,
   RefreshCw,
   EyeOff,
+  Eraser,
 } from "lucide-react";
 
 const KIND_LABELS: Record<string, string> = {
@@ -59,6 +61,7 @@ function trend(current: number, previous: number) {
 }
 
 export default function TripsPage() {
+  const router = useRouter();
   const defaultRange = periodToRange("7d");
   const [period, setPeriod] = useState("7d");
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
@@ -133,6 +136,10 @@ export default function TripsPage() {
             onToChange={handleDateToChange}
             disabled={isLoading}
           />
+          <Button variant="outline" onClick={() => router.push("/trips/retention")} className="shrink-0">
+            <Eraser className="h-4 w-4 mr-2" />
+            Rétention
+          </Button>
           <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} className="shrink-0">
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>

@@ -1,4 +1,4 @@
-import { TripStats } from "@/types";
+import { TripRetention, TripStats } from "@/types";
 
 export const mockTripStats: TripStats = {
   openNow: 12,
@@ -41,4 +41,16 @@ export const mockTripStats: TripStats = {
   ],
   period: { from: "2026-08-07T00:00:00.000Z", to: "2026-08-14T23:59:59.999Z" },
   previousPeriod: { from: "2026-07-31T00:00:00.000Z", to: "2026-08-07T00:00:00.000Z" },
+};
+
+export const mockTripRetention: TripRetention = {
+  policy: { pointsHours: 720, pointsIncidentDays: 30, tripMonths: 12 },
+  stored: { points: 184_320, trips: 1_260, oldestPointAt: "2026-07-20T08:12:00.000Z" },
+  expired: { points: 12_940, trips: 88 },
+  closed: { points: 178_400, trips: 1_248 },
+  purgedTrips: 4_310,
+  runs: [
+    { at: "2026-08-17T02:00:00.000Z", scope: "retention", by: null, points: 9_120, trips: 61 },
+    { at: "2026-08-14T11:32:00.000Z", scope: "all", by: "alanyapro64@gmail.com", points: 41_020, trips: 302 },
+  ],
 };

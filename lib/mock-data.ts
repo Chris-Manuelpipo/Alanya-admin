@@ -1,7 +1,7 @@
-import { AdminStats, Analytics, TripStats, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
+import { AdminStats, Analytics, TripStats, TripRetention, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
-import { mockTripStats } from '@/mock/trips';
+import { mockTripRetention, mockTripStats } from '@/mock/trips';
 import { mockUsersResponse, mockUserDetail, mockUserActivity, mockLoginHistory } from '@/mock/users';
 import { mockGroups, mockGroupDetail } from '@/mock/groups';
 import { mockMeetings } from '@/mock/meetings';
@@ -71,6 +71,23 @@ export async function fetchTripStats(from?: string, to?: string): Promise<TripSt
   const range = normalizeApiDateRange(from, to);
   const res = await api.get('/admin/trips', { params: range });
   return res.data as TripStats;
+}
+
+export async function fetchTripRetention(): Promise<TripRetention> {
+  if (USE_MOCK) return mockTripRetention;
+  const res = await api.get('/admin/trips/retention');
+  return res.data as TripRetention;
+}
+
+/**
+ * Purge manuelle. `retention` applique la politique tout de suite ; `all`
+ * efface la trace de tous les trajets clos. Le serveur ne touche jamais un
+ * trajet en cours, quel que soit le scope.
+ */
+export async function runTripPurge(scope: 'retention' | 'all'): Promise<TripRetention> {
+  if (USE_MOCK) return mockTripRetention;
+  const res = await api.post('/admin/trips/retention/purge', { scope });
+  return res.data as TripRetention;
 }
 
 // ── Users ──
