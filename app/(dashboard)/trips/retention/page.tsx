@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { TripRetentionContentSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { useRunTripPurge, useTripRetention } from "@/hooks/useTripStats";
@@ -27,7 +28,6 @@ import {
   Database,
   Eraser,
   EyeOff,
-  Loader2,
   RefreshCw,
   ShieldAlert,
   Trash2,
@@ -67,6 +67,11 @@ export default function TripRetentionPage() {
   const { data, isLoading, isFetching, isError, refetch } = useTripRetention();
   const purge = useRunTripPurge();
   const [confirm, setConfirm] = useState<Scope | null>(null);
+
+  // Même règle que la page Trajets : le squelette couvre le premier chargement
+  // et un rafraîchissement qui n'a encore rien à afficher, jamais un simple
+  // refetch en fond — sinon les compteurs clignoteraient à chaque purge.
+  const showSkeleton = isLoading || (isFetching && !data);
 
   async function handlePurge(scope: Scope) {
     try {
@@ -125,13 +130,9 @@ export default function TripRetentionPage() {
         </div>
       )}
 
-      {!isError && isLoading && (
-        <div className="flex items-center justify-center py-16 text-zinc-400">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      )}
+      {!isError && showSkeleton && <TripRetentionContentSkeleton />}
 
-      {!isError && !isLoading && data && (
+      {!isError && !showSkeleton && data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard

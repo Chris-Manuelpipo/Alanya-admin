@@ -54,6 +54,6 @@ export {
   ReservedPhoneSearchSkeleton,
 } from "./reserved-phones-skeleton";
 export { GeolocationPageSkeleton } from "./geolocation-skeleton";
-export { TripsContentSkeleton } from "./trips-skeleton";
+export { TripsContentSkeleton, TripRetentionContentSkeleton } from "./trips-skeleton";
 export { BroadcastHistorySkeleton } from "./broadcast-skeleton";
 export { WelcomePageSkeleton } from "./welcome-skeleton";
