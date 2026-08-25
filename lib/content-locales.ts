@@ -28,6 +28,17 @@ export const CONTENT_LOCALE_LABELS: Record<ContentLocale, string> = {
 };
 
 /**
+ * « Français et English » — les langues à remplir, nommées pour l'interface.
+ *
+ * Construit depuis les constantes : ajouter une langue requise met à jour tous
+ * les textes d'un coup, au lieu de laisser derrière soi des « traduction
+ * anglaise obligatoire » devenus faux.
+ */
+export const REQUIRED_LOCALE_NAMES = REQUIRED_CONTENT_LOCALES.map(
+  (l) => CONTENT_LOCALE_LABELS[l],
+).join(" et ");
+
+/**
  * Ordre de repli quand une traduction manque — miroir de `FALLBACK_CHAIN`.
  *
  * Un lecteur chinois sans version chinoise voit l'anglais, pas le français.

@@ -32,8 +32,10 @@ import { LangTabs } from "@/components/ui/lang-tabs";
 import {
   CONTENT_LOCALE_LABELS,
   missingRequiredLocales,
+  REQUIRED_LOCALE_NAMES,
   type ContentLocale,
   resolveTranslation,
+  untranslatedRequiredLocales,
   type Translations,
 } from "@/lib/content-locales";
 
@@ -166,10 +168,11 @@ export default function NewBroadcastPage() {
   const mediaRequired = nature === 1 || nature === 2;
   const errors = useMemo(() => {
     const list = criteriaErrors(criteriaDrafts);
-    // Français et anglais restent obligatoires : sans eux la chaîne de repli
-    // n'a rien à servir. Les autres langues sont facultatives — les exiger
-    // bloquerait toute publication jusqu'à ce qu'un traducteur soit
-    // disponible, et le repli couvre leur absence.
+    // Contrairement à un bloc de bienvenue, dont la légende peut légitimement
+    // rester vide, une diffusion *est* son contenu : les langues requises sont
+    // dues même quand rien n'est encore écrit, sinon une annonce vide partirait.
+    // Les autres langues restent facultatives — les exiger bloquerait l'envoi
+    // jusqu'à ce qu'un traducteur soit disponible, et le repli couvre l'absence.
     for (const loc of missingRequiredLocales(translations)) {
       list.push(`Le contenu en ${CONTENT_LOCALE_LABELS[loc]} est obligatoire.`);
     }
@@ -349,7 +352,7 @@ export default function NewBroadcastPage() {
           <Section
             step={2}
             title="Contenu"
-            description="Français et anglais obligatoires ; les autres langues retombent sur l'anglais"
+            description={`${REQUIRED_LOCALE_NAMES} obligatoires ; les autres langues sont facultatives et retombent sur la chaîne de repli`}
           >
             <div className="space-y-3">
               <LangTabs value={lang} onChange={setLang} translations={translations} />
@@ -364,16 +367,20 @@ export default function NewBroadcastPage() {
                 )}
               />
 
-              {missingRequiredLocales(translations).length > 0 &&
-                Object.values(translations).some((v) => v?.trim()) && (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    Traduction obligatoire manquante :{" "}
-                    {missingRequiredLocales(translations)
-                      .map((l) => CONTENT_LOCALE_LABELS[l])
-                      .join(", ")}
-                    .
-                  </p>
-                )}
+              {/* Même règle et même formulation que le message et le statut de
+                  bienvenue : dès qu'une langue est saisie, les langues requises
+                  le sont toutes, et on les nomme. La diffusion entièrement vide
+                  ne s'affiche pas en rouge ici — c'est la liste d'erreurs qui
+                  bloque l'envoi, sans crier avant que rien ne soit écrit. */}
+              {untranslatedRequiredLocales(translations).length > 0 && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Traduction obligatoire manquante :{" "}
+                  {untranslatedRequiredLocales(translations)
+                    .map((l) => CONTENT_LOCALE_LABELS[l])
+                    .join(", ")}
+                  .
+                </p>
+              )}
 
               {!isStatut && pushBody.length > PUSH_BODY_MAX && (
                 <p className="text-xs text-zinc-500">

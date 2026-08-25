@@ -20,17 +20,11 @@ import { WelcomeStatusEditor } from "@/components/welcome/WelcomeStatusEditor";
 import { WelcomePageSkeleton } from "@/components/skeletons";
 import { TabPanel, Tabs, TabStatePill } from "@/components/ui/tabs";
 import {
-  CONTENT_LOCALE_LABELS,
-  REQUIRED_CONTENT_LOCALES,
+  REQUIRED_LOCALE_NAMES,
   untranslatedRequiredLocales,
 } from "@/lib/content-locales";
 import type { WelcomeBlock } from "@/types";
 import { HandHeart, Loader2, Lock, MessageSquare, Radio, Rocket, Save, Users } from "lucide-react";
-
-/** « Français et English » — les onglets à remplir avant de publier. */
-const REQUIRED_LOCALE_NAMES = REQUIRED_CONTENT_LOCALES.map(
-  (l) => CONTENT_LOCALE_LABELS[l],
-).join(" et ");
 
 export default function WelcomePage() {
   const router = useRouter();
