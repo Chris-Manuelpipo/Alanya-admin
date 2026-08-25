@@ -121,7 +121,9 @@ export function ExportDialog({
         fmt: format,
       };
     }
-    const params = buildAnalyticsExportParams(filterParams, { sections: [...sections] });
+    // Array.from plutôt que l'opérateur de décomposition : la cible TS du
+    // projet n'autorise pas l'itération directe d'un Set (downlevelIteration).
+    const params = buildAnalyticsExportParams(filterParams, { sections: Array.from(sections) });
     return {
       resource: "analytics",
       params,

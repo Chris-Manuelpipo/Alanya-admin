@@ -4,44 +4,64 @@
  * Purges de rétention.
  *
  * Ces cinq balayages suppriment définitivement des fichiers et des lignes.
- * Cet écran répond à trois questions qu'on ne pouvait pas poser avant :
- * qu'est-ce qui va être supprimé, est-ce que ça tourne vraiment, et comment
- * l'arrêter sans redéployer.
+ * L'écran répond à trois questions qu'on ne pouvait pas poser avant : qu'est-ce
+ * qui va être supprimé, est-ce que ça tourne vraiment, et comment l'arrêter
+ * sans redéployer.
  *
- * L'ordre à l'écran est délibéré : la volumétrie d'abord, l'interrupteur
- * ensuite. On ne coupe ni ne relance une purge sans avoir vu ce qu'elle
- * s'apprête à faire.
+ * L'ordre est délibéré — volumétrie d'abord, commandes ensuite : on ne coupe ni
+ * ne relance une suppression définitive sans avoir vu ce qu'elle s'apprête à
+ * faire.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { PurgesContentSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { useIsSuperAdmin } from "@/hooks/useAdminUser";
 import { usePurges, useRunPurge, useUpdatePurge } from "@/hooks/usePurges";
+import { cn } from "@/lib/utils";
 import type { PurgeRun, PurgeSetting } from "@/types";
 import {
-  AlertTriangle, CheckCircle2, Clock, Eraser, Loader2,
-  Power, RefreshCw, ShieldAlert, XCircle,
+  AlertTriangle, CheckCircle2, Clock, Database, Eraser, FileImage,
+  Loader2, Megaphone, Power, RefreshCw, Route, ShieldAlert, Sparkles,
+  TriangleAlert, XCircle,
 } from "lucide-react";
 
-const octets = (n: number) => {
-  if (!n) return "0 o";
+const n = (v: number) => v.toLocaleString("fr-FR");
+
+const octets = (v: number) => {
+  if (!v) return "0 o";
   const u = ["o", "Ko", "Mo", "Go"];
-  const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
-  return `${(n / 1024 ** i).toFixed(i ? 1 : 0)} ${u[i]}`;
+  const i = Math.min(u.length - 1, Math.floor(Math.log(v) / Math.log(1024)));
+  return `${(v / 1024 ** i).toFixed(i ? 1 : 0)} ${u[i]}`;
 };
+
+const dateLongue = (s: string | null) =>
+  s ? new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
 const dateCourte = (s: string | null) =>
   s ? new Date(s).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
+/** Identité visuelle par purge — repérage immédiat dans une liste de cinq. */
+const IDENTITE: Record<string, { icon: typeof Eraser; couleur: string }> = {
+  media: { icon: FileImage, couleur: "#6366f1" },
+  broadcast: { icon: Megaphone, couleur: "#0ea5e9" },
+  welcome_status: { icon: Sparkles, couleur: "#a855f7" },
+  trip: { icon: Route, couleur: "#f59e0b" },
+  data_retention: { icon: Database, couleur: "#10b981" },
+};
+
 /**
- * Résumé lisible de « ce qui serait supprimé ». La forme des statistiques
- * varie d'une purge à l'autre (fichiers + octets pour les médias, lignes par
- * table pour la rétention générale…) : on traduit ici plutôt que d'imposer
- * un schéma commun côté serveur qui aurait aplati l'information utile.
+ * Traduit « ce qui serait supprimé » en langage lisible.
+ *
+ * La forme des statistiques varie d'une purge à l'autre (fichiers et octets
+ * pour les médias, lignes par table pour la rétention générale, points et
+ * trajets pour les traces GPS) : la traduction se fait ici plutôt que d'un
+ * schéma commun côté serveur, qui aurait aplati l'information utile.
  */
 function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
   const s = p.stats as Record<string, never> | null;
@@ -52,8 +72,8 @@ function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
     return {
       total: f,
       lignes: [
-        `${f} fichier${f > 1 ? "s" : ""} — ${octets(Number(s.octets) || 0)}`,
-        s.plusAncien ? `plus ancien : ${dateCourte(String(s.plusAncien))}` : "",
+        `${n(f)} fichier${f > 1 ? "s" : ""} — ${octets(Number(s.octets) || 0)}`,
+        s.plusAncien ? `le plus ancien remonte au ${dateLongue(String(s.plusAncien))}` : "",
       ].filter(Boolean),
     };
   }
@@ -71,7 +91,7 @@ function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
         .filter((c) => (c.lignes || 0) > 0 || c.erreur)
         .map((c) => (c.erreur
           ? `${c.table} : erreur`
-          : `${c.table} : ${c.lignes} ligne(s) (> ${c.retention})`)),
+          : `${c.table} : ${n(c.lignes || 0)} ligne(s) au-delà de ${c.retention}`)),
     };
   }
 
@@ -81,32 +101,32 @@ function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
     return {
       total: (exp.points || 0) + (exp.trips || 0),
       lignes: [
-        `${exp.points || 0} point(s) GPS et ${exp.trips || 0} trajet(s) échus`,
-        `en base : ${sto.points || 0} point(s), ${sto.trips || 0} trajet(s)`,
+        `${n(exp.points || 0)} position(s) et ${n(exp.trips || 0)} trajet(s) échus`,
+        `en base : ${n(sto.points || 0)} position(s), ${n(sto.trips || 0)} trajet(s)`,
       ],
     };
   }
 
   const l = Number(s.lignes) || 0;
-  const suffixe = s.retentionFigee ? ` (> ${s.retentionFigee})` : "";
-  return { total: l, lignes: [`${l} ligne${l > 1 ? "s" : ""}${suffixe}`] };
+  const suffixe = s.retentionFigee ? ` au-delà de ${s.retentionFigee}` : "";
+  return { total: l, lignes: [`${n(l)} ligne${l > 1 ? "s" : ""}${suffixe}`] };
 }
 
 function LigneHistorique({ run }: { run: PurgeRun }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
       {run.ok ? (
         <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
       ) : (
-        <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+        <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
       )}
       <span className="tabular-nums">{dateCourte(run.ranAt)}</span>
-      <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+      <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
         {run.triggerSource === "manual" ? "manuelle" : "auto"}
       </Badge>
-      {run.byAdmin && <span className="truncate">par {run.byAdmin}</span>}
-      {run.durationMs != null && <span className="tabular-nums">{run.durationMs} ms</span>}
-      {run.error && <span className="truncate text-destructive">{run.error}</span>}
+      {run.byAdmin && <span className="truncate max-w-[14rem]">par {run.byAdmin}</span>}
+      {run.durationMs != null && <span className="tabular-nums">· {n(run.durationMs)} ms</span>}
+      {run.error && <span className="truncate text-red-500">· {run.error}</span>}
     </div>
   );
 }
@@ -120,6 +140,8 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
 
   const { total, lignes } = resumeStats(purge);
   const enCours = maj.isPending || run.isPending;
+  const { icon: Icon, couleur } = IDENTITE[purge.name] ?? { icon: Eraser, couleur: "#6366f1" };
+  const modifie = Object.keys(brouillon).length > 0;
 
   const basculer = () => {
     maj.mutate(
@@ -131,6 +153,7 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
             description: r.enabled
               ? "Le balayage automatique reprend au prochain tour."
               : "Le balayage automatique ne s'exécutera plus. La purge manuelle reste possible.",
+            variant: "success",
           }),
         onError: () => addToast({ title: "Échec de la mise à jour", variant: "error" }),
       },
@@ -150,7 +173,11 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
       {
         onSuccess: () => {
           setBrouillon({});
-          addToast({ title: "Durées mises à jour" });
+          addToast({
+            title: "Durées mises à jour",
+            description: "Une valeur hors bornes est ramenée au plus proche autorisé.",
+            variant: "success",
+          });
         },
         onError: () => addToast({ title: "Échec de la mise à jour", variant: "error" }),
       },
@@ -158,38 +185,75 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
   };
 
   return (
-    <Card className={purge.enabled ? "" : "border-dashed opacity-90"}>
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-        <div className="min-w-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            {purge.label}
-            {purge.enabled ? (
-              <Badge variant="outline" className="text-emerald-600">active</Badge>
-            ) : (
-              <Badge variant="destructive">désactivée</Badge>
-            )}
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">{purge.description}</p>
+    <Card
+      className={cn(
+        "border-0 shadow-sm bg-white dark:bg-zinc-900 transition-opacity",
+        !purge.enabled && "opacity-75",
+      )}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+              style={{ backgroundColor: `${couleur}1a` }}
+            >
+              <Icon className="h-5 w-5" style={{ color: couleur }} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-semibold tracking-tight">{purge.label}</h2>
+                {purge.enabled ? (
+                  <Badge variant="outline" className="border-emerald-500/40 text-emerald-600">
+                    active
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-amber-500/50 text-amber-600">
+                    désactivée
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{purge.description}</p>
+              {purge.updatedBy && (
+                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  Dernier réglage par {purge.updatedBy} · {dateCourte(purge.updatedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+          {superAdmin && (
+            <Button
+              variant={purge.enabled ? "outline" : "default"}
+              size="sm"
+              disabled={enCours}
+              onClick={basculer}
+              className="shrink-0"
+            >
+              {maj.isPending ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Power className="mr-1.5 h-4 w-4" />
+              )}
+              {purge.enabled ? "Désactiver" : "Activer"}
+            </Button>
+          )}
         </div>
-        {superAdmin && (
-          <Button
-            variant={purge.enabled ? "outline" : "default"}
-            size="sm"
-            disabled={enCours}
-            onClick={basculer}
-            className="shrink-0"
-          >
-            <Power className="mr-1.5 h-4 w-4" />
-            {purge.enabled ? "Désactiver" : "Activer"}
-          </Button>
-        )}
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Volumétrie — délibérément avant les commandes. */}
-        <div className="rounded-md border bg-muted/40 p-3">
+        <div
+          className={cn(
+            "rounded-lg border p-3",
+            total > 0
+              ? "border-amber-500/30 bg-amber-500/5"
+              : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40",
+          )}
+        >
           <div className="mb-1 flex items-center gap-2 text-sm font-medium">
-            {total > 0 ? (
+            {purge.statsErreur ? (
+              <TriangleAlert className="h-4 w-4 text-red-500" />
+            ) : total > 0 ? (
               <AlertTriangle className="h-4 w-4 text-amber-500" />
             ) : (
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -198,12 +262,12 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
               ? "Comptage indisponible"
               : total > 0
                 ? "Serait supprimé au prochain passage"
-                : "Rien à supprimer"}
+                : "Rien à supprimer pour l'instant"}
           </div>
           {purge.statsErreur ? (
-            <p className="text-xs text-destructive">{purge.statsErreur}</p>
+            <p className="text-xs text-red-500">{purge.statsErreur}</p>
           ) : (
-            <ul className="space-y-0.5 text-xs text-muted-foreground">
+            <ul className="space-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
               {lignes.map((l) => <li key={l}>{l}</li>)}
             </ul>
           )}
@@ -212,28 +276,39 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
         {/* Durées de rétention */}
         {purge.knobs.length > 0 ? (
           <div className="space-y-2">
-            {purge.knobs.map((k) => (
-              <div key={k.key} className="flex flex-wrap items-center gap-2 text-sm">
-                <label className="min-w-[13rem] text-muted-foreground" htmlFor={`${purge.name}-${k.key}`}>
-                  {k.label}
-                </label>
-                <input
-                  id={`${purge.name}-${k.key}`}
-                  type="number"
-                  min={k.min}
-                  max={k.max}
-                  disabled={!superAdmin || enCours}
-                  value={brouillon[k.key] ?? String(k.valeur)}
-                  onChange={(e) => setBrouillon((b) => ({ ...b, [k.key]: e.target.value }))}
-                  className="h-8 w-24 rounded-md border bg-background px-2 tabular-nums"
-                />
-                <span className="text-xs text-muted-foreground">
-                  {k.unit} · défaut {k.defaut} · min {k.min} / max {k.max}
-                </span>
-              </div>
-            ))}
-            {superAdmin && Object.keys(brouillon).length > 0 && (
-              <div className="flex gap-2">
+            {purge.knobs.map((k) => {
+              const surcharge = k.valeur !== k.defaut;
+              return (
+                <div key={k.key} className="flex flex-wrap items-center gap-2 text-sm">
+                  <label
+                    className="min-w-[13rem] text-zinc-600 dark:text-zinc-400"
+                    htmlFor={`${purge.name}-${k.key}`}
+                  >
+                    {k.label}
+                  </label>
+                  <input
+                    id={`${purge.name}-${k.key}`}
+                    type="number"
+                    min={k.min}
+                    max={k.max}
+                    disabled={!superAdmin || enCours}
+                    value={brouillon[k.key] ?? String(k.valeur)}
+                    onChange={(e) => setBrouillon((b) => ({ ...b, [k.key]: e.target.value }))}
+                    className="h-8 w-24 rounded-md border bg-background px-2 tabular-nums disabled:opacity-60"
+                  />
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                    {k.unit} · de {k.min} à {k.max}
+                  </span>
+                  {surcharge && (
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      défaut : {k.defaut}
+                    </Badge>
+                  )}
+                </div>
+              );
+            })}
+            {superAdmin && modifie && (
+              <div className="flex gap-2 pt-1">
                 <Button size="sm" onClick={enregistrerReglages} disabled={enCours}>
                   Enregistrer les durées
                 </Button>
@@ -244,18 +319,18 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
             )}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
             Durées figées dans le code pour cette purge — non modifiables ici.
           </p>
         )}
 
-        {/* Historique : c'est lui qui distingue « rien à faire » de « ne tourne pas ». */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {/* Historique : c'est lui qui distingue « rien à supprimer » de « ne tourne pas ». */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
             <Clock className="h-3.5 w-3.5" /> Dernières exécutions
           </div>
           {purge.runs.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">
               Aucune exécution enregistrée — le journal ne démarre qu&apos;avec cette version.
             </p>
           ) : (
@@ -264,13 +339,8 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
         </div>
 
         {superAdmin && (
-          <div className="flex items-center gap-2 border-t pt-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={enCours}
-              onClick={() => setConfirme(true)}
-            >
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <Button variant="outline" size="sm" disabled={enCours} onClick={() => setConfirme(true)}>
               {run.isPending ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               ) : (
@@ -279,7 +349,7 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
               Purger maintenant
             </Button>
             {!purge.enabled && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">
                 Possible même désactivée : seul le balayage automatique est coupé.
               </span>
             )}
@@ -293,19 +363,23 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
         title={`Purger « ${purge.label} » maintenant ?`}
         description={
           total > 0
-            ? `${lignes.join(" · ")}. Cette suppression est définitive.`
+            ? `${lignes.join(" · ")}. Cette suppression est définitive et sans retour.`
             : "Rien ne semble à supprimer pour l'instant : l'exécution sera sans effet."
         }
         confirmLabel="Purger"
         variant="destructive"
+        pending={run.isPending}
         onConfirm={() => {
           setConfirme(false);
           run.mutate(purge.name, {
-            onSuccess: () => addToast({ title: `Purge « ${purge.label} » exécutée` }),
+            onSuccess: () =>
+              addToast({ title: `Purge « ${purge.label} » exécutée`, variant: "success" }),
             onError: (e: unknown) =>
               addToast({
                 title: "Échec de la purge",
-                description: e instanceof Error ? e.message : undefined,
+                description:
+                  (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+                  || (e instanceof Error ? e.message : undefined),
                 variant: "error",
               }),
           });
@@ -319,40 +393,105 @@ export default function PurgesPage() {
   const superAdmin = useIsSuperAdmin();
   const { data, isLoading, isFetching, isError, refetch } = usePurges();
 
+  // Même règle que la page Rétention des traces : le squelette couvre le
+  // premier chargement, jamais un refetch en fond — sinon les compteurs
+  // clignoteraient à chaque bascule d'interrupteur.
+  const showSkeleton = isLoading || (isFetching && !data);
+
+  const recap = useMemo(() => {
+    const purges = data || [];
+    return {
+      actives: purges.filter((p) => p.enabled).length,
+      totales: purges.length,
+      aSupprimer: purges.reduce((acc, p) => acc + resumeStats(p).total, 0),
+      enEchec: purges.filter((p) => p.runs.some((r) => !r.ok)).length,
+    };
+  }, [data]);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Purges de rétention</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Eraser className="h-6 w-6 text-indigo-500" />
+            Purges de rétention
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             Ce que le serveur supprime automatiquement, et quand. Les suppressions sont définitives.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`mr-1.5 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-          Rafraîchir
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="shrink-0"
+        >
+          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
         </Button>
       </div>
 
       {!superAdmin && (
-        <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
           Lecture seule : seul un super-administrateur peut modifier ou déclencher une purge.
         </div>
       )}
 
-      {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
       {isError && (
-        <p className="text-sm text-destructive">
-          Impossible de charger les purges. La migration 068 a-t-elle été appliquée ?
-        </p>
+        <div className="text-center py-12">
+          <p className="text-red-500 text-sm mb-3">
+            Impossible de charger les purges — le serveur est-il à jour ?
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Réessayer
+          </Button>
+        </div>
       )}
 
-      <div className="grid gap-4">
-        {(data || []).map((p) => (
-          <CartePurge key={p.name} purge={p} superAdmin={superAdmin} />
-        ))}
-      </div>
+      {!isError && showSkeleton && <PurgesContentSkeleton />}
+
+      {!isError && !showSkeleton && data && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              title="Purges actives"
+              value={`${recap.actives} / ${recap.totales}`}
+              icon={Power}
+              color="#10b981"
+              subtitle={
+                recap.actives === recap.totales
+                  ? "toutes en service"
+                  : `${recap.totales - recap.actives} coupée(s)`
+              }
+            />
+            <StatCard
+              title="En attente de suppression"
+              value={recap.aSupprimer}
+              icon={AlertTriangle}
+              color="#f59e0b"
+              subtitle="fichiers et lignes, tous balayages confondus"
+            />
+            <StatCard
+              title="Purges en échec"
+              value={recap.enEchec}
+              icon={TriangleAlert}
+              color={recap.enEchec > 0 ? "#ef4444" : "#71717a"}
+              subtitle={
+                recap.enEchec > 0
+                  ? "une exécution récente a échoué"
+                  : "aucun échec récent"
+              }
+            />
+          </div>
+
+          <div className="grid gap-4">
+            {data.map((p) => (
+              <CartePurge key={p.name} purge={p} superAdmin={superAdmin} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

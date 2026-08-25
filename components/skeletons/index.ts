@@ -57,3 +57,4 @@ export { GeolocationPageSkeleton } from "./geolocation-skeleton";
 export { TripsContentSkeleton, TripRetentionContentSkeleton } from "./trips-skeleton";
 export { BroadcastHistorySkeleton } from "./broadcast-skeleton";
 export { WelcomePageSkeleton } from "./welcome-skeleton";
+export { PurgeCardSkeleton, PurgesContentSkeleton } from "./purges-skeleton";
