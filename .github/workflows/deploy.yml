@@ -18,5 +18,10 @@ jobs:
             cd /var/www/alanya-admin
             git pull origin main
             npm ci
-            NEXT_PUBLIC_API_URL=http://158.220.107.211/api npm run build
+            # Pas de NEXT_PUBLIC_API_URL ici : une variable posée en ligne de
+            # commande prime sur .env.production dans Next.js. Cette ligne
+            # portait encore http://158.220.107.211/api et aurait reconstruit le
+            # panneau vers l'ancien VPS, dont le backend est arrêté — en
+            # annulant en silence le changement de .env.production.
+            npm run build
             pm2 restart alanya-admin
