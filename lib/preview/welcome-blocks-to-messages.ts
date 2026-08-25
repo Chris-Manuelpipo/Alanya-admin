@@ -4,7 +4,26 @@ import {
   type PreviewMessage,
 } from "@/components/preview/types";
 import type { WelcomeBlock, WelcomeCtaButton } from "@/types";
-import { pickLocalized } from "./localized";
+import type { Translations } from "@/lib/content-locales";
+import { resolveLocalized } from "./localized";
+
+/**
+ * Corps d'un bloc dans la langue demandée.
+ *
+ * `translations` fait foi ; `contentFr`/`contentEn` ne servent que de repli pour
+ * un bloc antérieur à la migration 053 — exactement l'ordre qu'applique
+ * `blockToMessagePayload` côté serveur. Lire les colonnes héritées en premier
+ * faisait afficher l'ancien texte dans l'aperçu alors que la livraison partait
+ * déjà avec le nouveau.
+ */
+function blockText(block: WelcomeBlock, lang: PreviewLang): string {
+  const translations: Translations = {
+    ...(block.contentFr ? { fr: block.contentFr } : {}),
+    ...(block.contentEn ? { en: block.contentEn } : {}),
+    ...(block.translations ?? {}),
+  };
+  return resolveLocalized(translations, lang);
+}
 
 /**
  * Transforme les blocs de l'éditeur en messages de conversation, **exactement**
@@ -30,29 +49,38 @@ function blockToMessage(block: WelcomeBlock, lang: PreviewLang): PreviewMessage 
     case "text":
       return {
         type: 0,
-        content: pickLocalized(block.contentFr, block.contentEn, lang),
+        content: blockText(block, lang),
         mediaUrl: null,
       };
 
     case "image":
       return {
         type: 1,
-        content: pickLocalized(block.contentFr, block.contentEn, lang) || null,
+        content: blockText(block, lang) || null,
         mediaUrl: block.mediaUrl || null,
       };
 
     case "video":
       return {
         type: 2,
-        content: pickLocalized(block.contentFr, block.contentEn, lang) || null,
+        content: blockText(block, lang) || null,
         mediaUrl: block.mediaUrl || null,
       };
 
     case "cta": {
       const raw = block.ctaJson?.buttons ?? [];
       const buttons = raw
-        .map((btn: WelcomeCtaButton) => ({
-          label: lang === "en" ? btn.labelEn || btn.labelFr || "" : btn.labelFr || btn.labelEn || "",
+        .map((btn: WelcomeCtaButton, index: number) => ({
+          // Même ordre que pour le corps : la traduction du bouton d'abord, le
+          // libellé hérité de `cta_json` seulement à défaut.
+          label: resolveLocalized(
+            {
+              ...(btn.labelFr ? { fr: btn.labelFr } : {}),
+              ...(btn.labelEn ? { en: btn.labelEn } : {}),
+              ...(block.ctaTranslations?.[index] ?? {}),
+            },
+            lang,
+          ),
           action: btn.action === "url" ? ("url" as const) : ("route" as const),
           target: String(btn.target || ""),
         }))

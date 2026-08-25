@@ -51,6 +51,26 @@ export function missingRequiredLocales(t: Translations): ContentLocale[] {
 }
 
 /**
+ * Langues requises manquantes sur un contenu **qui porte du texte**.
+ *
+ * Un contenu vide dans toutes les langues ne réclame rien : une légende absente
+ * est légitime sur un bloc image ou vidéo, et ne doit pas bloquer la
+ * publication. Dès qu'une langue est saisie — fût-elle facultative — toutes les
+ * langues requises le deviennent.
+ *
+ * Miroir de `untranslatedRequiredLocales`
+ * (Alanya-Backend/src/utils/localeContent.js) : l'éditeur doit refuser avec la
+ * même règle que le serveur, sinon l'administrateur découvre le refus à l'envoi.
+ */
+export function untranslatedRequiredLocales(
+  t: Translations | null | undefined,
+): ContentLocale[] {
+  const filled = (l: ContentLocale) => !!t?.[l]?.trim();
+  if (!CONTENT_LOCALES.some(filled)) return [];
+  return REQUIRED_CONTENT_LOCALES.filter((l) => !filled(l));
+}
+
+/**
  * Résout un contenu localisé — miroir de `resolveI18n`.
  *
  * Parcourt : locale demandée → chaîne de repli → première valeur non vide.

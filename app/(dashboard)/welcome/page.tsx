@@ -19,8 +19,18 @@ import { WelcomeEditor } from "@/components/welcome/WelcomeEditor";
 import { WelcomeStatusEditor } from "@/components/welcome/WelcomeStatusEditor";
 import { WelcomePageSkeleton } from "@/components/skeletons";
 import { TabPanel, Tabs, TabStatePill } from "@/components/ui/tabs";
+import {
+  CONTENT_LOCALE_LABELS,
+  REQUIRED_CONTENT_LOCALES,
+  untranslatedRequiredLocales,
+} from "@/lib/content-locales";
 import type { WelcomeBlock } from "@/types";
 import { HandHeart, Loader2, Lock, MessageSquare, Radio, Rocket, Save, Users } from "lucide-react";
+
+/** « Français et English » — les onglets à remplir avant de publier. */
+const REQUIRED_LOCALE_NAMES = REQUIRED_CONTENT_LOCALES.map(
+  (l) => CONTENT_LOCALE_LABELS[l],
+).join(" et ");
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -40,12 +50,16 @@ export default function WelcomePage() {
   const [dirty, setDirty] = useState(false);
 
   /**
-   * Blocs dont la traduction anglaise manque — numérotés comme dans l'éditeur.
+   * Blocs auxquels il manque une langue requise — numérotés comme dans l'éditeur.
    *
-   * La règle est « traduire ce qui est écrit » : une légende vide des deux côtés
-   * reste légitime sur un bloc image ou vidéo. Un bouton sans libellé anglais
-   * est purement supprimé à la livraison, l'anglophone verrait donc un bloc
-   * amputé — il compte donc aussi.
+   * La règle est « traduire ce qui est écrit » : une légende vide dans toutes
+   * les langues reste légitime sur un bloc image ou vidéo. Un bouton sans
+   * libellé dans une langue est purement supprimé à la livraison, ce lecteur-là
+   * verrait donc un bloc amputé — il compte donc aussi.
+   *
+   * Le contrôle porte sur `translations`, la forme que l'éditeur écrit : sur les
+   * champs hérités `contentFr`/`contentEn`, un bloc ajouté depuis la migration
+   * 053 arrivait vide et franchissait le garde sans traduction.
    */
   const untranslated = useMemo(
     () =>
@@ -53,12 +67,11 @@ export default function WelcomePage() {
         .map((b, i) => {
           const textMissing =
             b.blockType !== "cta" &&
-            (b.contentFr ?? "").trim() &&
-            !(b.contentEn ?? "").trim();
+            untranslatedRequiredLocales(b.translations).length > 0;
           const ctaMissing =
             b.blockType === "cta" &&
-            (b.ctaJson?.buttons ?? []).some(
-              (btn) => (btn.labelFr ?? "").trim() && !(btn.labelEn ?? "").trim(),
+            (b.ctaTranslations ?? []).some(
+              (t) => untranslatedRequiredLocales(t).length > 0,
             );
           return textMissing || ctaMissing ? i + 1 : null;
         })
@@ -95,8 +108,8 @@ export default function WelcomePage() {
     if (untranslated.length) {
       setConfirmPublish(false);
       addToast({
-        title: "Traduction anglaise manquante",
-        description: `Bloc(s) ${untranslated.join(", ")} — complétez l'onglet EN avant de publier.`,
+        title: "Traduction manquante",
+        description: `Bloc(s) ${untranslated.join(", ")} — complétez ${REQUIRED_LOCALE_NAMES} avant de publier.`,
         variant: "error",
       });
       return;
@@ -243,7 +256,7 @@ export default function WelcomePage() {
                   disabled={publishMutation.isPending || untranslated.length > 0}
                   title={
                     untranslated.length
-                      ? `Traduction anglaise manquante — bloc(s) ${untranslated.join(", ")}`
+                      ? `Traduction manquante — bloc(s) ${untranslated.join(", ")}`
                       : undefined
                   }
                   className="bg-indigo-600 text-white hover:bg-indigo-700"
@@ -273,10 +286,10 @@ export default function WelcomePage() {
 
               {untranslated.length > 0 && (
                 <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">
-                  Traduction anglaise manquante — bloc(s){" "}
-                  <strong>{untranslated.join(", ")}</strong>. Les deux langues sont
-                  obligatoires : sans traduction, les anglophones recevraient le texte
-                  français.
+                  Traduction manquante — bloc(s){" "}
+                  <strong>{untranslated.join(", ")}</strong>. {REQUIRED_LOCALE_NAMES} sont
+                  obligatoires : sans traduction, le lecteur reçoit le texte d&apos;une
+                  autre langue.
                 </p>
               )}
 

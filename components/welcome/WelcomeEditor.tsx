@@ -21,9 +21,11 @@ import type { PreviewContent } from "@/components/preview/PreviewStage";
 import type { PreviewLang } from "@/components/preview/types";
 import { welcomeBlocksToMessages } from "@/lib/preview/welcome-blocks-to-messages";
 import {
+  CONTENT_LOCALES,
   CONTENT_LOCALE_LABELS,
-  missingRequiredLocales,
+  untranslatedRequiredLocales,
   type ContentLocale,
+  type Translations,
 } from "@/lib/content-locales";
 import { cn } from "@/lib/utils";
 import type { WelcomeBlock, WelcomeBlockType, WelcomeCtaButton } from "@/types";
@@ -115,6 +117,16 @@ export function WelcomeEditor({
     onChange([...sorted, emptyBlock(type, sorted.length)]);
   }
 
+  /**
+   * Traductions des boutons alignées sur le tableau `buttons`.
+   *
+   * Le serveur les indexe par position (`cta.0`, `cta.1`…) : un décalage entre
+   * les deux tableaux attribuerait le libellé d'un bouton à un autre.
+   */
+  function alignedCtaTranslations(block: WelcomeBlock, count: number): Translations[] {
+    return Array.from({ length: count }, (_, i) => ({ ...(block.ctaTranslations?.[i] ?? {}) }));
+  }
+
   function updateCtaButton(blockIndex: number, btnIndex: number, patch: Partial<WelcomeCtaButton>) {
     const block = sorted[blockIndex];
     const buttons = [...(block.ctaJson?.buttons ?? [])];
@@ -122,17 +134,49 @@ export function WelcomeEditor({
     updateBlock(blockIndex, { ctaJson: { buttons } });
   }
 
+  /**
+   * Libellé d'un bouton dans une langue.
+   *
+   * `ctaTranslations` est la forme de référence depuis la migration 053 ; les
+   * `labelFr`/`labelEn` de `cta_json` sont maintenus en parallèle le temps de la
+   * double écriture. N'écrire que le libellé hérité reviendrait à ne rien
+   * écrire : le serveur lit la traduction d'abord.
+   */
+  function updateCtaLabel(
+    blockIndex: number,
+    btnIndex: number,
+    locale: ContentLocale,
+    value: string,
+  ) {
+    const block = sorted[blockIndex];
+    const buttons = [...(block.ctaJson?.buttons ?? [])];
+    const ctaTranslations = alignedCtaTranslations(block, buttons.length);
+    ctaTranslations[btnIndex] = { ...ctaTranslations[btnIndex], [locale]: value };
+    buttons[btnIndex] = {
+      ...buttons[btnIndex],
+      ...(locale === "fr" ? { labelFr: value } : {}),
+      ...(locale === "en" ? { labelEn: value } : {}),
+    };
+    updateBlock(blockIndex, { ctaJson: { buttons }, ctaTranslations });
+  }
+
   function addCtaButton(blockIndex: number) {
     const block = sorted[blockIndex];
     const buttons = [...(block.ctaJson?.buttons ?? [])];
+    const ctaTranslations = alignedCtaTranslations(block, buttons.length);
     buttons.push({ labelFr: "", labelEn: "", action: "route", target: "profile" });
-    updateBlock(blockIndex, { ctaJson: { buttons } });
+    ctaTranslations.push({});
+    updateBlock(blockIndex, { ctaJson: { buttons }, ctaTranslations });
   }
 
   function removeCtaButton(blockIndex: number, btnIndex: number) {
     const block = sorted[blockIndex];
     const buttons = (block.ctaJson?.buttons ?? []).filter((_, i) => i !== btnIndex);
-    updateBlock(blockIndex, { ctaJson: { buttons } });
+    const ctaTranslations = alignedCtaTranslations(
+      block,
+      block.ctaJson?.buttons?.length ?? 0,
+    ).filter((_, i) => i !== btnIndex);
+    updateBlock(blockIndex, { ctaJson: { buttons }, ctaTranslations });
   }
 
   // Plus de `contentKey` calculé : le corps vit dans `translations[lang]`,
@@ -186,6 +230,7 @@ export function WelcomeEditor({
               onMove={(dir) => moveBlock(index, dir)}
               onRemove={() => removeBlock(index)}
               onUpdateCta={(bi, patch) => updateCtaButton(index, bi, patch)}
+              onUpdateCtaLabel={(bi, locale, value) => updateCtaLabel(index, bi, locale, value)}
               onAddCta={() => addCtaButton(index)}
               onRemoveCta={(bi) => removeCtaButton(index, bi)}
             />
@@ -217,6 +262,7 @@ interface BlockCardProps {
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onUpdateCta: (btnIndex: number, patch: Partial<WelcomeCtaButton>) => void;
+  onUpdateCtaLabel: (btnIndex: number, locale: ContentLocale, value: string) => void;
   onAddCta: () => void;
   onRemoveCta: (btnIndex: number) => void;
 }
@@ -231,6 +277,7 @@ function BlockCard({
   onMove,
   onRemove,
   onUpdateCta,
+  onUpdateCtaLabel,
   onAddCta,
   onRemoveCta,
 }: BlockCardProps) {
@@ -286,14 +333,10 @@ function BlockCard({
       <div className="space-y-3 p-4">
         {block.blockType !== "cta" && (
           <div className="space-y-2">
+            {/* Le suffixe suit la langue active : figé sur « FR / EN », il
+                annonçait « Message EN » sur l'onglet chinois. */}
             <Label>
-              {block.blockType === "text"
-                ? lang === "fr"
-                  ? "Message FR"
-                  : "Message EN"
-                : lang === "fr"
-                  ? "Légende FR"
-                  : "Légende EN"}
+              {block.blockType === "text" ? "Message" : "Légende"} {lang.toUpperCase()}
             </Label>
             <RichTextArea
               value={block.translations?.[lang] ?? ""}
@@ -306,11 +349,10 @@ function BlockCard({
               placeholder={block.blockType === "text" ? "Message…" : "Légende (optionnelle)"}
               rows={block.blockType === "text" ? 5 : 3}
             />
-            {Object.values(block.translations ?? {}).some((v) => v?.trim()) &&
-              missingRequiredLocales(block.translations ?? {}).length > 0 && (
+            {untranslatedRequiredLocales(block.translations).length > 0 && (
               <p className="text-xs text-red-600 dark:text-red-400">
                 Traduction obligatoire pour publier :{" "}
-                {missingRequiredLocales(block.translations ?? {})
+                {untranslatedRequiredLocales(block.translations)
                   .map((l) => CONTENT_LOCALE_LABELS[l])
                   .join(", ")}
                 .
@@ -340,18 +382,25 @@ function BlockCard({
         {block.blockType === "cta" && (
           <div className="space-y-3">
             {(block.ctaJson?.buttons ?? []).map((btn, bi) => {
+              // `ctaTranslations` fait foi ; les libellés de `cta_json` ne sont
+              // qu'un repli pour les boutons antérieurs à la migration 053.
+              const labels: Translations = {
+                ...(btn.labelFr ? { fr: btn.labelFr } : {}),
+                ...(btn.labelEn ? { en: btn.labelEn } : {}),
+                ...(block.ctaTranslations?.[bi] ?? {}),
+              };
               // Le serveur écarte les boutons sans libellé ou sans cible.
-              const dropped = !(btn.labelFr || btn.labelEn) || !btn.target;
-              // Un libellé anglais manquant fait disparaître le bouton chez les
-              // anglophones : l'anglais est donc exigé dès que le français est
-              // rempli, comme partout ailleurs.
-              const missingEn = !!btn.labelFr?.trim() && !btn.labelEn?.trim();
+              const dropped = !CONTENT_LOCALES.some((l) => labels[l]?.trim()) || !btn.target;
+              // Un libellé manquant dans une langue fait disparaître le bouton
+              // chez ses lecteurs : les langues requises le sont donc ici aussi,
+              // dès qu'un libellé est saisi.
+              const missing = untranslatedRequiredLocales(labels);
               return (
                 <div
                   key={bi}
                   className={cn(
                     "space-y-2 rounded-lg border p-3",
-                    dropped || missingEn
+                    dropped || missing.length
                       ? "border-amber-300 bg-amber-50/50 dark:border-amber-800/60 dark:bg-amber-950/20"
                       : "border-zinc-100 dark:border-zinc-800",
                   )}
@@ -370,17 +419,15 @@ function BlockCard({
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  {/* Un champ par langue active, comme pour le corps des blocs :
+                      c'est ce qui rend le chinois saisissable — les deux champs
+                      FR/EN figés d'avant ne laissaient aucune place aux langues
+                      ajoutées après eux. */}
                   <Input
-                    placeholder="Libellé FR"
-                    value={btn.labelFr}
+                    placeholder={`Libellé ${lang.toUpperCase()}`}
+                    value={labels[lang] ?? ""}
                     disabled={disabled}
-                    onChange={(e) => onUpdateCta(bi, { labelFr: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Libellé EN"
-                    value={btn.labelEn}
-                    disabled={disabled}
-                    onChange={(e) => onUpdateCta(bi, { labelEn: e.target.value })}
+                    onChange={(e) => onUpdateCtaLabel(bi, lang, e.target.value)}
                   />
                   <select
                     className="h-9 w-full rounded-md border border-zinc-200 bg-transparent px-2 text-sm dark:border-zinc-700"
@@ -415,10 +462,11 @@ function BlockCard({
                       Libellé ou destination manquant — ce bouton ne sera pas envoyé.
                     </p>
                   )}
-                  {!dropped && missingEn && (
+                  {!dropped && missing.length > 0 && (
                     <p className="text-xs text-red-600 dark:text-red-400">
-                      Libellé anglais obligatoire — sans lui, le bouton disparaît chez
-                      les anglophones.
+                      Libellé obligatoire en{" "}
+                      {missing.map((l) => CONTENT_LOCALE_LABELS[l]).join(", ")} — sans
+                      lui, le bouton disparaît chez ces lecteurs.
                     </p>
                   )}
                 </div>

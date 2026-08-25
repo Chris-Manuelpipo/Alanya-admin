@@ -14,18 +14,3 @@ export function resolveLocalized(
 ): string {
   return resolveTranslation(translations, lang);
 }
-
-/**
- * Variante héritée sur un couple fr/en.
- *
- * Conservée pour les éditeurs qui portent encore un état `contentFr` /
- * `contentEn` (message de bienvenue). À retirer quand ils passeront à
- * [Translations], en même temps que les colonnes `_fr`/`_en` du backend.
- */
-export function pickLocalized(
-  fr: string | null | undefined,
-  en: string | null | undefined,
-  lang: PreviewLang,
-): string {
-  return resolveTranslation({ fr: fr ?? undefined, en: en ?? undefined }, lang);
-}
