@@ -17,6 +17,7 @@ import {
   Megaphone,
   UserCircle,
   HandHeart,
+  Eraser,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ const baseNavItems = [
 
 const superNavItems = [
   { href: "/welcome", label: "Bienvenue", icon: HandHeart },
+  { href: "/purges", label: "Purges", icon: Eraser },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -583,3 +583,44 @@ export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
 }
+
+// ── Purges de rétention (espace super-admin) ──
+
+export interface PurgeKnob {
+  key: string;
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  defaut: number;
+  valeur: number;
+}
+
+export interface PurgeRun {
+  id: number;
+  name: string;
+  ran_at: string;
+  trigger_source: 'auto' | 'manual';
+  by_admin: string | null;
+  ok: 0 | 1;
+  result: unknown;
+  error: string | null;
+  duration_ms: number | null;
+}
+
+export interface PurgeSetting {
+  name: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  options: Record<string, number>;
+  defauts: Record<string, number>;
+  surcharges: Record<string, number>;
+  knobs: PurgeKnob[];
+  /** Volumétrie qui serait supprimée maintenant. Forme variable selon la purge. */
+  stats: Record<string, unknown> | null;
+  statsErreur: string | null;
+  runs: PurgeRun[];
+  updatedAt: string | null;
+  updatedBy: string | null;
+}

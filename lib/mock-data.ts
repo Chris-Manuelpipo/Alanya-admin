@@ -1,4 +1,4 @@
-import { AdminStats, Analytics, TripStats, TripRetention, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville } from '@/types';
+import { AdminStats, Analytics, TripStats, TripRetention, ActivityEntry, UsersResponse, UserDetail, UserActivity, LoginEntry, Group, GroupDetail, Meeting, MediaItem, AppSettings, Pays, Broadcast, BroadcastsResponse, BroadcastFormData, BroadcastEstimateResult, AdminProfile, Ville, PurgeSetting, PurgeRun } from '@/types';
 import { mockStats, mockActivityFeed } from '@/mock/stats';
 import { mockAnalytics } from '@/mock/analytics';
 import { mockTripRetention, mockTripStats } from '@/mock/trips';
@@ -88,6 +88,32 @@ export async function runTripPurge(scope: 'retention' | 'all'): Promise<TripRete
   if (USE_MOCK) return mockTripRetention;
   const res = await api.post('/admin/trips/retention/purge', { scope });
   return res.data as TripRetention;
+}
+
+// ── Purges de rétention ──
+
+export async function fetchPurges(): Promise<PurgeSetting[]> {
+  const res = await api.get('/admin/purges');
+  return (res.data?.purges || []) as PurgeSetting[];
+}
+
+/** Active/désactive une purge, ou change ses durées de rétention. */
+export async function updatePurge(
+  name: string,
+  payload: { enabled?: boolean; overrides?: Record<string, number | null> },
+): Promise<PurgeSetting> {
+  const res = await api.put(`/admin/purges/${name}`, payload);
+  return res.data as PurgeSetting;
+}
+
+/**
+ * Exécution immédiate. Volontairement indépendante de l'interrupteur : garder
+ * la main pour purger ponctuellement tout en laissant le balayage automatique
+ * coupé est l'usage attendu.
+ */
+export async function runPurgeNow(name: string): Promise<{ ok: boolean; runs: PurgeRun[] }> {
+  const res = await api.post(`/admin/purges/${name}/run`, {});
+  return res.data as { ok: boolean; runs: PurgeRun[] };
 }
 
 // ── Users ──
