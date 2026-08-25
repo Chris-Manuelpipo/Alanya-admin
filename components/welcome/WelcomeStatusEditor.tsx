@@ -18,8 +18,8 @@ import { WELCOME_STATUS_TEXT_MAX, type WelcomeStatusConfig } from "@/types";
 import {
   CONTENT_LOCALES,
   CONTENT_LOCALE_LABELS,
-  missingRequiredLocales,
   resolveTranslation,
+  untranslatedRequiredLocales,
 } from "@/lib/content-locales";
 
 const TYPES = [
@@ -46,6 +46,21 @@ interface WelcomeStatusEditorProps {
 }
 
 /**
+ * Traductions complétées par les champs hérités `textFr`/`textEn`.
+ *
+ * L'éditeur ne lit que `translations` ; le serveur peut n'en renvoyer aucune
+ * quand la table `welcome_status_config_i18n` manque ou n'a pas encore repris
+ * un contenu. Sans ce repli, le champ s'ouvrait vide sur un texte pourtant
+ * enregistré, et l'activation était refusée pour « contenu incomplet ».
+ */
+function withLegacyTranslations(config: WelcomeStatusConfig): WelcomeStatusConfig {
+  const translations = { ...(config.translations ?? {}) };
+  if (!translations.fr?.trim() && config.textFr?.trim()) translations.fr = config.textFr;
+  if (!translations.en?.trim() && config.textEn?.trim()) translations.en = config.textEn;
+  return { ...config, translations };
+}
+
+/**
  * Statut de bienvenue — réglage global, hors versionnement du message.
  *
  * Conséquence assumée sur l'interface : l'interrupteur enregistre tout de suite
@@ -64,7 +79,7 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
 
   useEffect(() => {
     if (data) {
-      setForm(data);
+      setForm(withLegacyTranslations(data));
       setDirty(false);
     }
   }, [data]);
@@ -83,9 +98,10 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
     if (form.type === 0 && !t.fr?.trim()) {
       return "Un statut texte exige un texte en français.";
     }
-    // Le français et l'anglais sont exigés ; les autres langues retombent sur
-    // l'anglais par la chaîne de repli, les exiger bloquerait la publication.
-    const missing = t.fr?.trim() ? missingRequiredLocales(t) : [];
+    // Les langues requises le sont dès qu'une langue est saisie, dans les deux
+    // sens ; les langues facultatives retombent sur la chaîne de repli, les
+    // exiger bloquerait l'activation en attendant un traducteur.
+    const missing = untranslatedRequiredLocales(t);
     if (missing.length > 0) {
       return `Traduction obligatoire manquante : ${missing
         .map((l) => CONTENT_LOCALE_LABELS[l])
@@ -260,10 +276,16 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                   {remaining}
                 </span>
               </div>
-              {(form.translations?.fr ?? "").trim() &&
-                missingRequiredLocales(form.translations ?? {}).length > 0 && (
+              {/* Les langues manquantes sont nommées : « Traduction anglaise
+                  obligatoire » restait faux dès qu'un texte était saisi
+                  d'abord en anglais, ou dans une langue ajoutée après. */}
+              {untranslatedRequiredLocales(form.translations).length > 0 && (
                 <p className="text-xs text-red-600 dark:text-red-400">
-                  Traduction anglaise obligatoire.
+                  Traduction obligatoire :{" "}
+                  {untranslatedRequiredLocales(form.translations)
+                    .map((l) => CONTENT_LOCALE_LABELS[l])
+                    .join(", ")}
+                  .
                 </p>
               )}
             </div>
