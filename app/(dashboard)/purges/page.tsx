@@ -59,14 +59,19 @@ function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
   }
 
   if (p.name === "data_retention") {
-    const cibles = (s.parCible || {}) as Record<string, { lignes?: number; retention?: string; erreur?: string }>;
-    const entrees = Object.entries(cibles);
-    const total = entrees.reduce((acc, [, v]) => acc + (v.lignes || 0), 0);
+    // Tableau et non objet indexé : les noms de tables sont des valeurs, pour
+    // survivre à la conversion camelCase appliquée aux clés par lib/api.ts.
+    const cibles = (s.parCible || []) as Array<{
+      table: string; lignes?: number; retention?: string; erreur?: string;
+    }>;
+    const total = cibles.reduce((acc, c) => acc + (c.lignes || 0), 0);
     return {
       total,
-      lignes: entrees
-        .filter(([, v]) => (v.lignes || 0) > 0 || v.erreur)
-        .map(([k, v]) => (v.erreur ? `${k} : erreur` : `${k} : ${v.lignes} ligne(s) (> ${v.retention})`)),
+      lignes: cibles
+        .filter((c) => (c.lignes || 0) > 0 || c.erreur)
+        .map((c) => (c.erreur
+          ? `${c.table} : erreur`
+          : `${c.table} : ${c.lignes} ligne(s) (> ${c.retention})`)),
     };
   }
 
@@ -95,12 +100,12 @@ function LigneHistorique({ run }: { run: PurgeRun }) {
       ) : (
         <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
       )}
-      <span className="tabular-nums">{dateCourte(run.ran_at)}</span>
+      <span className="tabular-nums">{dateCourte(run.ranAt)}</span>
       <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-        {run.trigger_source === "manual" ? "manuelle" : "auto"}
+        {run.triggerSource === "manual" ? "manuelle" : "auto"}
       </Badge>
-      {run.by_admin && <span className="truncate">par {run.by_admin}</span>}
-      {run.duration_ms != null && <span className="tabular-nums">{run.duration_ms} ms</span>}
+      {run.byAdmin && <span className="truncate">par {run.byAdmin}</span>}
+      {run.durationMs != null && <span className="tabular-nums">{run.durationMs} ms</span>}
       {run.error && <span className="truncate text-destructive">{run.error}</span>}
     </div>
   );

@@ -596,16 +596,23 @@ export interface PurgeKnob {
   valeur: number;
 }
 
+/**
+ * Une exécution de purge.
+ *
+ * Clés en camelCase : le client axios (lib/api.ts) normalise toute réponse
+ * via `snakeToCamel`. Les colonnes SQL `ran_at`, `trigger_source`,
+ * `by_admin`, `duration_ms` arrivent donc déjà converties côté page.
+ */
 export interface PurgeRun {
   id: number;
   name: string;
-  ran_at: string;
-  trigger_source: 'auto' | 'manual';
-  by_admin: string | null;
+  ranAt: string;
+  triggerSource: 'auto' | 'manual';
+  byAdmin: string | null;
   ok: 0 | 1;
   result: unknown;
   error: string | null;
-  duration_ms: number | null;
+  durationMs: number | null;
 }
 
 export interface PurgeSetting {
