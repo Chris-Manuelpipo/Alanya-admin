@@ -3,7 +3,7 @@
 /**
  * Purges de rétention.
  *
- * Ces cinq balayages suppriment définitivement des fichiers et des lignes.
+ * Ces balayages suppriment définitivement des fichiers et des lignes.
  * L'écran répond à trois questions qu'on ne pouvait pas poser avant : qu'est-ce
  * qui va être supprimé, est-ce que ça tourne vraiment, et comment l'arrêter
  * sans redéployer.
@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import type { PurgeRun, PurgeSetting } from "@/types";
 import {
   AlertTriangle, CheckCircle2, Clock, Database, Eraser, FileImage,
-  Loader2, Megaphone, Power, RefreshCw, Route, ShieldAlert, Sparkles,
+  Loader2, Megaphone, Power, RefreshCw, Route, ShieldAlert, Smile, Sparkles,
   TriangleAlert, XCircle,
 } from "lucide-react";
 
@@ -46,10 +46,11 @@ const dateLongue = (s: string | null) =>
 const dateCourte = (s: string | null) =>
   s ? new Date(s).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
-/** Identité visuelle par purge — repérage immédiat dans une liste de cinq. */
+/** Identité visuelle par purge — repérage immédiat dans la liste. */
 const IDENTITE: Record<string, { icon: typeof Eraser; couleur: string }> = {
   media: { icon: FileImage, couleur: "#6366f1" },
   broadcast: { icon: Megaphone, couleur: "#0ea5e9" },
+  story: { icon: Smile, couleur: "#ec4899" },
   welcome_status: { icon: Sparkles, couleur: "#a855f7" },
   trip: { icon: Route, couleur: "#f59e0b" },
   data_retention: { icon: Database, couleur: "#10b981" },
@@ -92,6 +93,19 @@ function resumeStats(p: PurgeSetting): { total: number; lignes: string[] } {
         .map((c) => (c.erreur
           ? `${c.table} : erreur`
           : `${c.table} : ${n(c.lignes || 0)} ligne(s) au-delà de ${c.retention}`)),
+    };
+  }
+
+  if (p.name === "story") {
+    const l = Number(s.lignes) || 0;
+    return {
+      total: l,
+      lignes: [
+        `${n(l)} story${l > 1 ? "s" : ""} au-delà de la rétention`,
+        s.plusAncienne
+          ? `la plus ancienne a été publiée le ${dateLongue(String(s.plusAncienne))}`
+          : "",
+      ].filter(Boolean),
     };
   }
 

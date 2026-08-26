@@ -67,7 +67,7 @@ export function PurgeCardSkeleton({ index = 0, knobs = 1 }: { index?: number; kn
   );
 }
 
-/** Contenu complet de la page Purges en chargement : bandeau + cinq cartes. */
+/** Contenu complet de la page Purges en chargement : bandeau + une carte par purge. */
 export function PurgesContentSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Chargement des purges">
@@ -75,7 +75,7 @@ export function PurgesContentSkeleton() {
       <div className="grid gap-4">
         {/* Le nombre de réglages varie d'une purge à l'autre : reproduire cette
             variation évite que les cartes ne se réajustent à l'arrivée. */}
-        {[1, 0, 1, 3, 0].map((knobs, i) => (
+        {[1, 0, 1, 1, 3, 0].map((knobs, i) => (
           <PurgeCardSkeleton key={i} index={i} knobs={knobs} />
         ))}
       </div>
