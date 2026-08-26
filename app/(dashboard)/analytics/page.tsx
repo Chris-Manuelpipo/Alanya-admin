@@ -40,6 +40,15 @@ function formatDuration(s: number): string {
   return `${sec}s`;
 }
 
+/** `meeting.duree` est en minutes, pas en secondes — ne pas la passer à `formatDuration`. */
+function formatMinutes(m: number): string {
+  if (!m) return "0 min";
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h) return min ? `${h} h ${min} min` : `${h} h`;
+  return `${min} min`;
+}
+
 function trend(current: number, previous: number) {
   if (!previous) return undefined;
   const pct = Math.round(((current - previous) / previous) * 100);
@@ -233,7 +242,7 @@ export default function AnalyticsPage() {
             <PieChart data={callTypePie} title="Audio vs Vidéo" />
             <PieChart data={callOutcomePie} title="Issue des appels" />
             <PieChart data={callConnectionModePie} title="Mode de connexion" />
-            <PieChart data={meetingPie} title="Réunions — participation" />
+            <PieChart data={meetingPie} title="Réunions — réponses aux invitations" />
           </div>
           <StackedBarChart
             data={data.callsByDay}
@@ -259,10 +268,10 @@ export default function AnalyticsPage() {
 
           <SectionTitle>Réunions</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard title="Réunions" value={data.meetings.total} icon={Video} color="#6366f1" subtitle="cette période" />
-            <StatCard title="Durée moyenne" value={formatDuration(data.meetings.avgDuration)} icon={Clock} color="#8b5cf6" subtitle="par réunion" />
-            <StatCard title="Taux de présence" value={`${data.meetings.attendanceRate}%`} icon={CheckCircle2} color="#22c55e" subtitle={`${data.meetings.accepted.toLocaleString()} acceptés`} />
-            <StatCard title="No-show" value={`${data.meetings.noShowRate}%`} icon={UsersRound} color="#ef4444" subtitle="refus / sans réponse" />
+            <StatCard title="Réunions" value={data.meetings.total} icon={Video} color="#6366f1" subtitle={`${data.meetings.ended.toLocaleString()} terminées`} />
+            <StatCard title="Durée réelle moyenne" value={formatDuration(data.meetings.avgRealDuration)} icon={Clock} color="#8b5cf6" subtitle={`${formatMinutes(data.meetings.avgPlannedMinutes)} planifiées`} />
+            <StatCard title="Taux de présence" value={`${data.meetings.attendanceRate}%`} icon={CheckCircle2} color="#22c55e" subtitle={`${data.meetings.attendees.toLocaleString()} présents sur ${data.meetings.participants.toLocaleString()}`} />
+            <StatCard title="No-show" value={`${data.meetings.noShowRate}%`} icon={UsersRound} color="#ef4444" subtitle={`${data.meetings.noShow.toLocaleString()} acceptés jamais venus`} />
           </div>
 
           <SectionTitle>Utilisateurs &amp; conversations</SectionTitle>

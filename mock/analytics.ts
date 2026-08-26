@@ -74,12 +74,19 @@ export const mockAnalytics: Analytics = {
   },
   meetings: {
     total: 312,
-    avgDuration: 1840,
+    ended: 274,
+    avgPlannedMinutes: 45,
+    avgRealDuration: 1840,
+    participants: 1770,
+    attendees: 1115,
+    invitations: 1458,
     accepted: 1120,
     declined: 240,
-    invited: 410,
+    invited: 98,
+    noShow: 392,
     attendanceRate: 63,
-    noShowRate: 37,
+    acceptanceRate: 77,
+    noShowRate: 35,
   },
   users: {
     byRole: [

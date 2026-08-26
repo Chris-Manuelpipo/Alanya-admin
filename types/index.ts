@@ -196,11 +196,27 @@ export interface StoryStats {
 
 export interface MeetingStats {
   total: number;
-  avgDuration: number;
+  ended: number;
+  /** Durée PLANIFIÉE, en minutes (`meeting.duree`, saisie à la création). */
+  avgPlannedMinutes: number;
+  /** Durée réellement vécue, en secondes (reconstituée depuis `participant.duree`). */
+  avgRealDuration: number;
+  participants: number;
+  /** Participants réellement connectés au moins une fois. */
+  attendees: number;
+  /** Participants hors organisateur — les seuls à avoir eu une invitation à laquelle répondre. */
+  invitations: number;
   accepted: number;
   declined: number;
+  /** Invités sans réponse. */
   invited: number;
+  /** Ont accepté puis ne sont jamais venus. */
+  noShow: number;
+  /** attendees / participants — présence réelle, pas réponse à l'invitation. */
   attendanceRate: number;
+  /** accepted / invitations. */
+  acceptanceRate: number;
+  /** noShow / accepted. */
   noShowRate: number;
 }
 
