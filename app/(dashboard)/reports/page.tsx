@@ -1,8 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Flag, MessageSquare, RefreshCw, ShieldQuestion, UserX } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  MessageSquare,
+  RefreshCw,
+  Search,
+  ShieldQuestion,
+  UserX,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +52,15 @@ const STATE_STYLE: Record<ReportState, string> = {
   dismissed: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500",
 };
 
+/**
+ * Taille de page.
+ *
+ * Plus petite qu'ailleurs dans le panneau : une carte de signalement porte le
+ * message en clair et son historique, elle occupe dix fois la hauteur d'une
+ * ligne de tableau. Vingt cartes feraient une page qu'on ne descend pas.
+ */
+const PAGE_SIZE = 10;
+
 const STATE_LABEL: Record<ReportState, string> = {
   open: "À traiter",
   reviewing: "En cours",
@@ -64,13 +83,56 @@ export default function ReportsPage() {
   const { addToast } = useToast();
 
   const [state, setState] = useState<ReportState | "">("open");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [decision, setDecision] = useState<{ report: Report; action: string } | null>(null);
   const [note, setNote] = useState("");
 
-  const { data: reports, isLoading, isFetching, refetch } = useReports(state || undefined);
+  // Le champ suit la frappe, la requête attend 300 ms. Sans ce délai, chaque
+  // caractère envoie une recherche dont les huit `LIKE '%…%'` ne peuvent
+  // s'appuyer sur aucun index. Même délai que partout ailleurs dans le panneau.
+  // Le retour en page 1 est fait ici, dans le même geste que la recherche :
+  // séparé, il partirait un render plus tôt et lancerait une requête pour la
+  // page 3 de la nouvelle recherche, jetée aussitôt.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data, isLoading, isFetching, refetch } = useReports({
+    state: state || undefined,
+    search: debouncedSearch,
+    page,
+    limit: PAGE_SIZE,
+  });
   const handle = useHandleReport();
 
   const canHandle = can("reports.handle");
+
+  /**
+   * Changer de filtre ou de recherche ramène à la première page.
+   *
+   * Rester en page 4 sur un résultat qui en compte deux affiche une file vide
+   * alors qu'il y a des lignes : l'écran semble dire « rien ne correspond »
+   * quand il dit en fait « pas ici ».
+   */
+  function setStateAndReset(next: ReportState | "") {
+    setState(next);
+    setPage(1);
+  }
+
+  // La recherche, elle, ramène en page 1 depuis l'effet de debounce ci-dessus.
+  // Sauf l'effacement, qui court-circuite le délai : attendre 300 ms après un
+  // clic sur une croix se voit, là où attendre après une frappe ne se voit pas.
+  function clearSearch() {
+    setSearch("");
+    setDebouncedSearch("");
+    setPage(1);
+  }
 
   function decide() {
     if (!decision) return;
@@ -88,8 +150,18 @@ export default function ReportsPage() {
     );
   }
 
-  const rows = reports ?? [];
-  const open = rows.filter((r) => r.state === "open").length;
+  const rows = data?.items ?? [];
+  const open = data?.open ?? 0;
+  const total = data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Trancher le dernier signalement d'une page peut la faire disparaître —
+  // c'est même le cas nominal quand on filtre sur « À traiter » et qu'on vide
+  // la file. Sans ce recalage, l'écran annoncerait « aucun signalement » alors
+  // qu'il en reste, une page plus haut.
+  useEffect(() => {
+    if (data && page > pageCount) setPage(pageCount);
+  }, [data, page, pageCount]);
 
   return (
     <div className="space-y-6">
@@ -109,7 +181,7 @@ export default function ReportsPage() {
               <button
                 key={s.value || "tous"}
                 type="button"
-                onClick={() => setState(s.value)}
+                onClick={() => setStateAndReset(s.value)}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                   state === s.value
@@ -134,13 +206,40 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* La recherche balaie les trois comptes en présence — l'auteur du
+          signalement, le compte visé, l'auteur du message — la précision du
+          plaignant et le message signalé lui-même. */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un nom, une précision, un message signalé…"
+          className="pl-9 pr-9"
+          aria-label="Rechercher dans les signalements"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            aria-label="Effacer la recherche"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Le décompte vient du serveur : il ignore l'onglet affiché mais suit la
+          recherche. Déduit de la page, il aurait plafonné à PAGE_SIZE. */}
       {open > 0 && state !== "open" && (
         <button
           type="button"
-          onClick={() => setState("open")}
+          onClick={() => setStateAndReset("open")}
           className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400"
         >
           <strong>{open}</strong> signalement{open > 1 ? "s" : ""} en attente de traitement
+          {debouncedSearch ? " parmi les résultats" : ""}
         </button>
       )}
 
@@ -154,10 +253,27 @@ export default function ReportsPage() {
               Aucun signalement
             </p>
             <p className="mt-1 text-sm text-zinc-500">
-              {state === "open"
-                ? "Rien n'attend de décision."
-                : "Aucun signalement dans cet état."}
+              {/* Une recherche infructueuse n'est pas une file vide : dire
+                  « rien n'attend de décision » ferait croire que le travail
+                  est fait. On lit la recherche debouncée, la seule qui décrive
+                  ce qui est affiché : la frappe en cours, elle, annoncerait le
+                  vide 300 ms avant que la requête ne parte. */}
+              {debouncedSearch
+                ? "Aucun résultat pour cette recherche."
+                : state === "open"
+                  ? "Rien n'attend de décision."
+                  : "Aucun signalement dans cet état."}
             </p>
+            {debouncedSearch && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={clearSearch}
+              >
+                Effacer la recherche
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -275,6 +391,32 @@ export default function ReportsPage() {
           </Card>
         ))}
       </div>
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Page {page} sur {pageCount} ({total} signalement{total > 1 ? "s" : ""})
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isFetching}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" /> Précédent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pageCount || isFetching}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Suivant <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Bannir ne se fait pas ici : le bouton vit sur la fiche du compte, où le
           garde `users.ban` s'applique et où l'action est déjà journalisée. Un

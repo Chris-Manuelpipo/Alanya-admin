@@ -1,16 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchReportActions, fetchReports, postReportAction } from '@/lib/mock-data';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchReportActions, fetchReports, postReportAction, type ReportsParams } from '@/lib/mock-data';
 
 /**
  * File de modération.
  *
  * Rafraîchie plus souvent que le reste du panneau : c'est le seul écran où
  * l'inaction a un coût pour quelqu'un d'autre.
+ *
+ * `keepPreviousData` parce que la recherche part à chaque frappe : sans lui, la
+ * file clignoterait entre le squelette et les résultats à chaque caractère.
  */
-export function useReports(state?: string) {
+export function useReports(params: ReportsParams = {}) {
   return useQuery({
-    queryKey: ['admin-reports', state ?? 'tous'],
-    queryFn: () => fetchReports(state),
+    queryKey: ['admin-reports', params],
+    queryFn: () => fetchReports(params),
+    placeholderData: keepPreviousData,
     refetchInterval: 60_000,
   });
 }

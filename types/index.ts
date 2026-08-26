@@ -737,6 +737,21 @@ export interface Report {
   actions: number;
 }
 
+export interface ReportsResponse {
+  items: Report[];
+  total: number;
+  /**
+   * Signalements ouverts, filtre d'état ignoré mais recherche appliquée.
+   *
+   * C'est ce qu'annonce le bandeau « n en attente ». Il vient du serveur et
+   * non d'un décompte sur la page : depuis la pagination, une page ne contient
+   * qu'une tranche, et compter dessus plafonnerait le bandeau à `limit`.
+   */
+  open: number;
+  page: number;
+  limit: number;
+}
+
 export interface ReportAction {
   id: number;
   action: string;

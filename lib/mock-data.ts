@@ -810,9 +810,47 @@ function toReport(row: Wire<import('@/types').Report>): import('@/types').Report
   };
 }
 
-export async function fetchReports(state?: string): Promise<import('@/types').Report[]> {
-  const res = await api.get('/admin/reports', { params: state ? { state } : {} });
-  return (Array.isArray(res.data) ? res.data : []).map(toReport);
+export interface ReportsParams {
+  state?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function fetchReports(
+  params: ReportsParams = {},
+): Promise<import('@/types').ReportsResponse> {
+  const res = await api.get('/admin/reports', {
+    params: {
+      state: params.state || undefined,
+      search: params.search?.trim() || undefined,
+      page: params.page ?? 1,
+      limit: params.limit ?? 20,
+    },
+  });
+
+  // Un serveur d'avant la pagination répond par un tableau nu. L'accepter
+  // évite que l'écran s'affiche vide si le panneau est déployé avant le
+  // backend — l'ordre de déploiement cesse d'être une condition.
+  if (Array.isArray(res.data)) {
+    const items = res.data.map(toReport);
+    return {
+      items,
+      total: items.length,
+      open: items.filter((r) => r.state === 'open').length,
+      page: 1,
+      limit: items.length || 20,
+    };
+  }
+
+  const items = (Array.isArray(res.data?.items) ? res.data.items : []).map(toReport);
+  return {
+    items,
+    total: Number(res.data?.total ?? items.length),
+    open: Number(res.data?.open ?? 0),
+    page: Number(res.data?.page ?? 1),
+    limit: Number(res.data?.limit ?? 20),
+  };
 }
 
 export async function fetchReportActions(id: number): Promise<import('@/types').ReportAction[]> {
