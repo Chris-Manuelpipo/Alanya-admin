@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileUpload } from "@/components/ui/file-upload";
 import { RichTextArea } from "@/components/ui/rich-text-area";
+import { EditorialAssist } from "@/components/ui/editorial-assist";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import type { PreviewContent } from "@/components/preview/PreviewStage";
 import type { PreviewLang } from "@/components/preview/types";
@@ -160,6 +161,27 @@ export function WelcomeEditor({
     updateBlock(blockIndex, { ctaJson: { buttons }, ctaTranslations });
   }
 
+  /**
+   * Écrit plusieurs langues d'un libellé en une fois.
+   *
+   * `updateCtaLabel` ne sait en poser qu'une : l'appeler en boucle ferait lire
+   * à chaque tour le `sorted` du rendu courant, et seul le dernier appel
+   * survivrait. L'assistance rendant deux langues d'un coup, il lui faut ce
+   * chemin-là.
+   */
+  function applyCtaLabels(blockIndex: number, btnIndex: number, patch: Translations) {
+    const block = sorted[blockIndex];
+    const buttons = [...(block.ctaJson?.buttons ?? [])];
+    const ctaTranslations = alignedCtaTranslations(block, buttons.length);
+    ctaTranslations[btnIndex] = { ...ctaTranslations[btnIndex], ...patch };
+    buttons[btnIndex] = {
+      ...buttons[btnIndex],
+      ...(patch.fr != null ? { labelFr: patch.fr } : {}),
+      ...(patch.en != null ? { labelEn: patch.en } : {}),
+    };
+    updateBlock(blockIndex, { ctaJson: { buttons }, ctaTranslations });
+  }
+
   function addCtaButton(blockIndex: number) {
     const block = sorted[blockIndex];
     const buttons = [...(block.ctaJson?.buttons ?? [])];
@@ -231,6 +253,7 @@ export function WelcomeEditor({
               onRemove={() => removeBlock(index)}
               onUpdateCta={(bi, patch) => updateCtaButton(index, bi, patch)}
               onUpdateCtaLabel={(bi, locale, value) => updateCtaLabel(index, bi, locale, value)}
+              onApplyCtaLabels={(bi, patch) => applyCtaLabels(index, bi, patch)}
               onAddCta={() => addCtaButton(index)}
               onRemoveCta={(bi) => removeCtaButton(index, bi)}
             />
@@ -263,6 +286,7 @@ interface BlockCardProps {
   onRemove: () => void;
   onUpdateCta: (btnIndex: number, patch: Partial<WelcomeCtaButton>) => void;
   onUpdateCtaLabel: (btnIndex: number, locale: ContentLocale, value: string) => void;
+  onApplyCtaLabels: (btnIndex: number, patch: Translations) => void;
   onAddCta: () => void;
   onRemoveCta: (btnIndex: number) => void;
 }
@@ -278,6 +302,7 @@ function BlockCard({
   onRemove,
   onUpdateCta,
   onUpdateCtaLabel,
+  onApplyCtaLabels,
   onAddCta,
   onRemoveCta,
 }: BlockCardProps) {
@@ -358,6 +383,17 @@ function BlockCard({
                 .
               </p>
             )}
+            {/* Ce qui est produit ici entre dans le brouillon, pas dans la
+                conversation : « Enregistrer » puis « Publier » gardent le
+                dernier mot, comme pour une saisie manuelle. */}
+            <EditorialAssist
+              translations={block.translations ?? {}}
+              kind="welcome"
+              disabled={disabled}
+              onApply={(t) =>
+                onUpdate({ translations: { ...(block.translations ?? {}), ...t } })
+              }
+            />
           </div>
         )}
 
@@ -469,6 +505,15 @@ function BlockCard({
                       lui, le bouton disparaît chez ces lecteurs.
                     </p>
                   )}
+                  {/* Pas de relecture sur trois mots : le coup d'œil la fait
+                      mieux, et chaque appel se paye. */}
+                  <EditorialAssist
+                    translations={labels}
+                    kind="cta"
+                    disabled={disabled}
+                    showReview={false}
+                    onApply={(t) => onApplyCtaLabels(bi, t)}
+                  />
                 </div>
               );
             })}

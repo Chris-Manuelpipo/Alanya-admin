@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EditorialAssist } from "@/components/ui/editorial-assist";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { FileUpload } from "@/components/ui/file-upload";
 import { LangTabs } from "@/components/ui/lang-tabs";
@@ -381,6 +382,20 @@ export default function NewBroadcastPage() {
                   .
                 </p>
               )}
+
+              {/* Une diffusion part et ne se rattrape pas : l'assistance
+                  remplit les champs, la confirmation d'envoi reste le seul
+                  point de non-retour, et elle est plus loin. La nature suit le
+                  choix de l'administrateur — un statut ne se traduit pas comme
+                  une annonce. */}
+              <EditorialAssist
+                translations={translations}
+                kind={isStatut ? "status" : "broadcast"}
+                disabled={createMutation.isPending}
+                onApply={(t) =>
+                  setTranslations((prev: Translations) => ({ ...prev, ...t }))
+                }
+              />
 
               {!isStatut && pushBody.length > PUSH_BODY_MAX && (
                 <p className="text-xs text-zinc-500">

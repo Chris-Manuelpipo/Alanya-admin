@@ -1,4 +1,4 @@
-import type { Translations } from "@/lib/content-locales";
+import type { ContentLocale, Translations } from "@/lib/content-locales";
 export interface AdminStats {
   totalUsers: number;
   onlineUsers: number;
@@ -728,4 +728,47 @@ export interface ReportAction {
   createdAt: string;
   adminId: number | null;
   adminNom: string | null;
+}
+
+/* ── Assistance éditoriale ───────────────────────────────────────────── */
+
+/**
+ * Nature du contenu soumis à l'assistance.
+ *
+ * Miroir de `KINDS` (Alanya-Backend/src/services/ai/editorialAssist.js) : le
+ * ton et la longueur attendus en dépendent, et le serveur refuse une nature
+ * qu'il ne connaît pas.
+ */
+export type AiContentKind = "welcome" | "broadcast" | "status" | "cta";
+
+/** Disponibilité de l'assistance — sans clé configurée, aucun bouton. */
+export interface AiStatus {
+  enabled: boolean;
+  model: string | null;
+}
+
+export interface AiTranslateResult {
+  /** Traductions produites, par locale. Une langue peut manquer. */
+  translations: Translations;
+  /**
+   * Langues demandées que le modèle n'a pas rendues.
+   *
+   * Elles ressortent ici plutôt que remplies d'une valeur bancale : l'éditeur
+   * les signale déjà comme il signale une traduction non saisie.
+   */
+  missing: ContentLocale[];
+  /** Remarques du modèle à l'intention du relecteur. Souvent vide. */
+  notes: string[];
+  model: string;
+}
+
+export interface AiFinding {
+  locale: ContentLocale;
+  severity: "bloquant" | "attention" | "suggestion";
+  message: string;
+}
+
+export interface AiReviewResult {
+  findings: AiFinding[];
+  model: string;
 }

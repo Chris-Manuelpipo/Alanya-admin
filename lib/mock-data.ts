@@ -633,6 +633,37 @@ export async function saveWelcomeStatus(
   return normalizeWelcomeStatus(res.data);
 }
 
+// ── Assistance éditoriale ──
+//
+// N'écrit rien : ces routes remplissent le formulaire, la publication reste
+// gardée par `welcome.*` et `broadcasts.send`. En mode maquette elles ne sont
+// pas simulées — un faux texte traduit induirait en erreur sur la qualité
+// réelle, qui est justement ce qu'on veut juger.
+
+export async function fetchAiStatus(): Promise<import('@/types').AiStatus> {
+  if (USE_MOCK) return { enabled: false, model: null };
+  const res = await api.get('/admin/ai/status');
+  return res.data as import('@/types').AiStatus;
+}
+
+export async function translateContent(params: {
+  content: string;
+  kind: import('@/types').AiContentKind;
+  sourceLocale?: string;
+  targets?: string[];
+}): Promise<import('@/types').AiTranslateResult> {
+  const res = await api.post('/admin/ai/translate', params);
+  return res.data as import('@/types').AiTranslateResult;
+}
+
+export async function reviewContent(params: {
+  translations: import('@/lib/content-locales').Translations;
+  kind: import('@/types').AiContentKind;
+}): Promise<import('@/types').AiReviewResult> {
+  const res = await api.post('/admin/ai/review', params);
+  return res.data as import('@/types').AiReviewResult;
+}
+
 // ── Admin Profile ──
 
 const mockAdminProfile: AdminProfile = {
@@ -648,6 +679,7 @@ const mockAdminProfile: AdminProfile = {
   // maquette n'affiche pas une interface amputée ; il peut dériver, et c'est
   // sans conséquence — le vrai chemin est `GET /admin/me`.
   permissions: [
+    "ai.editorial",
     "analytics.export", "audit.read", "broadcasts.cancel", "broadcasts.read",
     "broadcasts.send", "groups.delete", "groups.read", "media.delete",
     "media.read", "meetings.delete", "meetings.end", "meetings.read",
