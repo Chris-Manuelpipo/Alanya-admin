@@ -6,7 +6,7 @@ import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } fro
 import { formatDisplay } from "@/lib/alanya-phone";
 import { cn } from "@/lib/utils";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -56,7 +56,7 @@ export default function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const isSuper = useIsSuperAdmin();
+  const { can } = usePermissions();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -401,7 +401,7 @@ export default function UsersPage() {
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString("fr") : "-"}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <ActionsMenu canSuper={isSuper} user={user} onView={() => router.push(`/users/${user.alanyaID}`)} onBan={() => setConfirmBan({ id: user.alanyaID, reason: "" })} onUnban={() => { unbanMutation.mutate(user.alanyaID); addToast({ title: "Utilisateur débanni", variant: "success" }); }} onRoleUp={() => setConfirmRole({ id: user.alanyaID, role: Math.min(user.typeCompte + 1, 2) })} onRoleDown={() => setConfirmRole({ id: user.alanyaID, role: Math.max(user.typeCompte - 1, 0) })} onDelete={() => setConfirmDelete(user.alanyaID)} />
+                    <ActionsMenu can={can} user={user} onView={() => router.push(`/users/${user.alanyaID}`)} onBan={() => setConfirmBan({ id: user.alanyaID, reason: "" })} onUnban={() => { unbanMutation.mutate(user.alanyaID); addToast({ title: "Utilisateur débanni", variant: "success" }); }} onRoleUp={() => setConfirmRole({ id: user.alanyaID, role: Math.min(user.typeCompte + 1, 2) })} onRoleDown={() => setConfirmRole({ id: user.alanyaID, role: Math.max(user.typeCompte - 1, 0) })} onDelete={() => setConfirmDelete(user.alanyaID)} />
                   </td>
                 </tr>
               );
@@ -527,9 +527,9 @@ function timeAgo(dateStr: string): string {
   return `il y a ${Math.floor(hrs / 24)}j`;
 }
 
-function ActionsMenu({ user, canSuper, onView, onBan, onUnban, onRoleUp, onRoleDown, onDelete }: {
+function ActionsMenu({ user, can, onView, onBan, onUnban, onRoleUp, onRoleDown, onDelete }: {
   user: { alanyaID: number; typeCompte: number; exclus: boolean };
-  canSuper: boolean;
+  can: (permission: string) => boolean;
   onView: () => void;
   onBan: () => void;
   onUnban: () => void;
@@ -550,26 +550,28 @@ function ActionsMenu({ user, canSuper, onView, onBan, onUnban, onRoleUp, onRoleD
             <button onClick={() => { onView(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left">
               <Eye className="h-4 w-4" /> Détails
             </button>
-            {user.exclus ? (
-              <button onClick={() => { onUnban(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" /> Débannir
-              </button>
-            ) : (
-              <button onClick={() => { onBan(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-red-600 dark:text-red-400">
-                <Ban className="h-4 w-4" /> Bannir
-              </button>
-            )}
-            {canSuper && user.typeCompte < 2 && (
+            {user.exclus
+              ? can("users.unban") && (
+                  <button onClick={() => { onUnban(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" /> Débannir
+                  </button>
+                )
+              : can("users.ban") && (
+                  <button onClick={() => { onBan(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left text-red-600 dark:text-red-400">
+                    <Ban className="h-4 w-4" /> Bannir
+                  </button>
+                )}
+            {can("users.role") && user.typeCompte < 2 && (
               <button onClick={() => { onRoleUp(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left">
                 <Shield className="h-4 w-4" /> Promouvoir
               </button>
             )}
-            {canSuper && user.typeCompte > 0 && (
+            {can("users.role") && user.typeCompte > 0 && (
               <button onClick={() => { onRoleDown(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left">
                 <ShieldOff className="h-4 w-4" /> Rétrograder
               </button>
             )}
-            {canSuper && (
+            {can("users.delete") && (
               <>
                 <hr className="my-1 border-zinc-200 dark:border-zinc-700" />
                 <button onClick={() => { onDelete(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/50 text-left text-red-600 dark:text-red-400">

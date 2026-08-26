@@ -9,7 +9,7 @@ import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUse
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
 import { cn } from "@/lib/utils";
-import { useIsSuperAdmin, useIsAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,8 +42,7 @@ export default function UserDetailPage() {
   const [showPhoneChange, setShowPhoneChange] = useState(false);
   const [newPhone, setNewPhone] = useState("");
 
-  const isSuper = useIsSuperAdmin();
-  const isAdmin = useIsAdmin();
+  const { can } = usePermissions();
   const { addToast } = useToast();
   const queryClient = useQueryClient();
   const banMutation = useBanUser();
@@ -188,30 +187,32 @@ export default function UserDetailPage() {
               <CardTitle className="text-sm font-semibold">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {user.exclus ? (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-950"
-                  onClick={() => {
-                    unbanMutation.mutate(user.alanyaID, {
-                      onSuccess: () => { addToast({ title: "Utilisateur débanni", variant: "success" }); refreshDetail(); },
-                    });
-                  }}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Débannir
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
-                  onClick={() => setConfirmBan({ id: user.alanyaID, reason: "" })}
-                >
-                  <BanIcon className="h-4 w-4 mr-2" />
-                  Bannir
-                </Button>
-              )}
-              {isAdmin && (
+              {user.exclus
+                ? can("users.unban") && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-950"
+                      onClick={() => {
+                        unbanMutation.mutate(user.alanyaID, {
+                          onSuccess: () => { addToast({ title: "Utilisateur débanni", variant: "success" }); refreshDetail(); },
+                        });
+                      }}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Débannir
+                    </Button>
+                  )
+                : can("users.ban") && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                      onClick={() => setConfirmBan({ id: user.alanyaID, reason: "" })}
+                    >
+                      <BanIcon className="h-4 w-4 mr-2" />
+                      Bannir
+                    </Button>
+                  )}
+              {can("users.phone") && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -224,7 +225,7 @@ export default function UserDetailPage() {
                   Changer le numéro
                 </Button>
               )}
-              {isSuper && user.typeCompte < 2 && (
+              {can("users.role") && user.typeCompte < 2 && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -234,7 +235,7 @@ export default function UserDetailPage() {
                   Promouvoir
                 </Button>
               )}
-              {isSuper && user.typeCompte > 0 && (
+              {can("users.role") && user.typeCompte > 0 && (
                 <Button
                   variant="outline"
                   className="w-full justify-start"
@@ -244,7 +245,7 @@ export default function UserDetailPage() {
                   Rétrograder
                 </Button>
               )}
-              {isSuper && (
+              {can("users.delete") && (
                 <>
                   <hr className="border-zinc-200 dark:border-zinc-800" />
                   <Button
@@ -260,7 +261,7 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
 
-          {isSuper && (() => {
+          {can("users.socle") && (() => {
             const currentType = socleType ?? user.accountType ?? 0;
             const currentVerif = socleVerif ?? user.verificationStatus ?? 0;
             const isAdminAccount = (user.typeCompte ?? 0) >= 1;

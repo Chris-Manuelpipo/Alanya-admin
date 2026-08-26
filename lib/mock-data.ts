@@ -643,6 +643,23 @@ const mockAdminProfile: AdminProfile = {
   alanyaPhone: "00000000",
   avatarUrl: "",
   typeCompte: 2,
+  // Fixture de développement (NEXT_PUBLIC_USE_MOCK) : le jeu réel est calculé
+  // par le serveur dans `constants/adminRoles.js`. Recopié ici pour que le mode
+  // maquette n'affiche pas une interface amputée ; il peut dériver, et c'est
+  // sans conséquence — le vrai chemin est `GET /admin/me`.
+  permissions: [
+    "analytics.export", "audit.read", "broadcasts.cancel", "broadcasts.read",
+    "broadcasts.send", "groups.delete", "groups.read", "media.delete",
+    "media.read", "meetings.delete", "meetings.end", "meetings.read",
+    "official.create", "official.read", "phones.read", "phones.release",
+    "phones.reserve", "profile.password", "profile.read", "profile.update",
+    "purges.read", "purges.run", "purges.settings", "settings.read",
+    "settings.write", "stats.read", "trips.purge", "trips.read", "users.ban",
+    "users.create", "users.delete", "users.export", "users.phone", "users.read",
+    "users.role", "users.socle", "users.unban", "villes.read",
+    "welcome.backfill", "welcome.draft", "welcome.publish", "welcome.read",
+    "welcome.status",
+  ],
   paysLibelle: "Côte d'Ivoire",
   createdAt: "2026-01-12T10:00:00Z",
   lastSeen: new Date().toISOString(),

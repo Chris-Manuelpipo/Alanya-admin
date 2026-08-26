@@ -7,7 +7,7 @@ import { useCreateUser, useReservedAlanyaPhones, useCheckAssignablePhone } from 
 import { useOfficialAccount, useCreateOfficialAccount } from "@/hooks/useBroadcasts";
 import { ReservedPhoneSearchSkeleton, SelectFieldSkeleton } from "@/components/skeletons";
 import { useCountries } from "@/hooks/useCountries";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   formatDisplay,
   formatLiveInput,
@@ -40,7 +40,8 @@ function randomPassword(length = 10): string {
 export default function NewUserPage() {
   const router = useRouter();
   const { addToast } = useToast();
-  const isSuper = useIsSuperAdmin();
+  const { can } = usePermissions();
+  const isSuper = can("users.role");
   const createMutation = useCreateUser();
   const { data: countries = [], isLoading: loadingCountries } = useCountries();
 

@@ -23,37 +23,41 @@ import {
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, adminLogout, getAdminUser } from "@/lib/auth";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useEffect, useState } from "react";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
-const baseNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/trips", label: "Trajets", icon: Route },
-  { href: "/users", label: "Utilisateurs", icon: Users },
-  { href: "/groups", label: "Groupes", icon: UsersRound },
-  { href: "/meetings", label: "Réunions", icon: Video },
-  { href: "/medias", label: "Médias", icon: ImageIcon },
-  { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
-  { href: "/broadcasts", label: "Diffusions", icon: Megaphone },
+/**
+ * La navigation se filtre sur les mêmes permissions que les routes du serveur,
+ * lues depuis `/admin/me`. Une entrée qui mènerait à une page répondant 403
+ * apprend à l'équipe à ignorer les erreurs — mieux vaut ne pas l'afficher.
+ */
+const navItemsAll = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "stats.read" },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, permission: "stats.read" },
+  { href: "/trips", label: "Trajets", icon: Route, permission: "trips.read" },
+  { href: "/users", label: "Utilisateurs", icon: Users, permission: "users.read" },
+  { href: "/groups", label: "Groupes", icon: UsersRound, permission: "groups.read" },
+  { href: "/meetings", label: "Réunions", icon: Video, permission: "meetings.read" },
+  { href: "/medias", label: "Médias", icon: ImageIcon, permission: "media.read" },
+  { href: "/geolocation", label: "Géolocalisation", icon: MapPin, permission: "stats.read" },
+  { href: "/broadcasts", label: "Diffusions", icon: Megaphone, permission: "broadcasts.read" },
+  { href: "/welcome", label: "Bienvenue", icon: HandHeart, permission: "welcome.read" },
+  // Gardée sur une permission d'écriture, à dessein : la page était réservée au
+  // super-admin, et la lecture seule des purges ne suffisait pas à l'ouvrir.
+  { href: "/purges", label: "Purges", icon: Eraser, permission: "purges.settings" },
   // Lisible par tout administrateur, délibérément : un journal que seul son
   // lecteur le plus puissant peut consulter ne protège personne de lui.
-  { href: "/audit", label: "Activité admin", icon: ScrollText },
-  { href: "/settings", label: "Paramètres", icon: Settings },
-  { href: "/profile", label: "Mon profil", icon: UserCircle },
-];
-
-const superNavItems = [
-  { href: "/welcome", label: "Bienvenue", icon: HandHeart },
-  { href: "/purges", label: "Purges", icon: Eraser },
+  { href: "/audit", label: "Activité admin", icon: ScrollText, permission: "audit.read" },
+  { href: "/settings", label: "Paramètres", icon: Settings, permission: "settings.read" },
+  { href: "/profile", label: "Mon profil", icon: UserCircle, permission: "profile.read" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isSuper = useIsSuperAdmin();
+  const { can } = usePermissions();
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -74,13 +78,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const user = getAdminUser();
-  const navItems = isSuper
-    ? [
-        ...baseNavItems.slice(0, 9),
-        ...superNavItems,
-        ...baseNavItems.slice(9),
-      ]
-    : baseNavItems;
+  // Tant que le profil charge, `can` répond faux et la barre reste vide : une
+  // entrée qui apparaît une seconde trop tard vaut mieux qu'une qui s'affiche
+  // puis disparaît.
+  const navItems = navItemsAll.filter((item) => can(item.permission));
 
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">

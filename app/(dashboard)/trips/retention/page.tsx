@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TripRetentionContentSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useRunTripPurge, useTripRetention } from "@/hooks/useTripStats";
 import type { TripPurgeRun } from "@/types";
 import {
@@ -63,7 +63,8 @@ function humanDate(iso: string | null): string {
 export default function TripRetentionPage() {
   const router = useRouter();
   const { addToast } = useToast();
-  const isSuper = useIsSuperAdmin();
+  const { can } = usePermissions();
+  const isSuper = can("trips.purge");
   const { data, isLoading, isFetching, isError, refetch } = useTripRetention();
   const purge = useRunTripPurge();
   const [confirm, setConfirm] = useState<Scope | null>(null);

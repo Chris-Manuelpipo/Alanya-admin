@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { SettingsPageSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Save, Globe, Bell, Shield, Palette, Loader2, Lock } from "lucide-react";
 
 export default function SettingsPage() {
@@ -17,7 +17,8 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
   const updateMutation = useUpdateSettings();
   const { addToast } = useToast();
-  const isSuper = useIsSuperAdmin();
+  const { can } = usePermissions();
+  const isSuper = can("settings.write");
 
   const [appName, setAppName] = useState("");
   const [apiUrl, setApiUrl] = useState("");

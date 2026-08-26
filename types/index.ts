@@ -585,6 +585,13 @@ export interface AdminProfile {
   alanyaPhone: string;
   avatarUrl: string;
   typeCompte: number;
+  /**
+   * Permissions effectives, calculées par le serveur.
+   *
+   * Le panneau ne recopie pas la table des rôles : elle divergerait au premier
+   * oubli, et un rôle qui change ne demanderait alors aucun redéploiement ici.
+   */
+  permissions: string[];
   paysLibelle: string | null;
   createdAt: string;
   lastSeen: string;

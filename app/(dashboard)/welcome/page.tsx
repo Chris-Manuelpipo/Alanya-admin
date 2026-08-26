@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useOfficialAccount } from "@/hooks/useBroadcasts";
 import {
   useWelcomeConfig,
@@ -28,7 +28,10 @@ import { HandHeart, Loader2, Lock, MessageSquare, Radio, Rocket, Save, Undo2, Us
 
 export default function WelcomePage() {
   const router = useRouter();
-  const isSuper = useIsSuperAdmin();
+  // `permsLoading` est indispensable ici : sans lui, la redirection ci-dessous
+  // partirait pendant le chargement du profil, quand `can` répond encore faux.
+  const { can, isLoading: permsLoading } = usePermissions();
+  const isSuper = permsLoading || can("welcome.read");
   const { data, isLoading } = useWelcomeConfig();
   const { data: official } = useOfficialAccount();
   // Même clé de cache que dans l'éditeur : react-query ne requête qu'une fois.

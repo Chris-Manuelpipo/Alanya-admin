@@ -21,7 +21,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PurgesContentSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
-import { useIsSuperAdmin } from "@/hooks/useAdminUser";
+import { usePermissions } from "@/hooks/usePermissions";
 import { usePurges, useRunPurge, useUpdatePurge } from "@/hooks/usePurges";
 import { cn } from "@/lib/utils";
 import type { PurgeRun, PurgeSetting } from "@/types";
@@ -390,7 +390,8 @@ function CartePurge({ purge, superAdmin }: { purge: PurgeSetting; superAdmin: bo
 }
 
 export default function PurgesPage() {
-  const superAdmin = useIsSuperAdmin();
+  const { can } = usePermissions();
+  const superAdmin = can("purges.settings");
   const { data, isLoading, isFetching, isError, refetch } = usePurges();
 
   // Même règle que la page Rétention des traces : le squelette couvre le
