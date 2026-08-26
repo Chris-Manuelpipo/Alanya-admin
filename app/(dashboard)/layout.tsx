@@ -22,6 +22,7 @@ import {
   Flag,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { AdminAlerts } from "@/components/layout/AdminAlerts";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, adminLogout, getAdminUser } from "@/lib/auth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -178,6 +179,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
         </header>
+
+        {/* Hors du conteneur défilant : une alerte qui remonte avec la page
+            se perd dès qu'on descend dans une liste. */}
+        <AdminAlerts />
 
         <main className="flex-1 overflow-y-auto p-6">
           {children}

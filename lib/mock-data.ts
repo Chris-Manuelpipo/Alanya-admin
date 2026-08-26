@@ -692,19 +692,21 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
  * que dans le contrôleur, comme pour les autres ressources du panneau.
  */
 function toAuditEntry(row: Record<string, unknown>): import('@/types').AuditEntry {
+  // Les clés arrivent déjà en camelCase : `api` applique `snakeToCamel` dans son
+  // `transformResponse`. Ne restent ici que les conversions de type.
   return {
     id: Number(row.id),
     action: String(row.action ?? ''),
     route: String(row.route ?? ''),
-    targetType: (row.target_type as string) ?? null,
-    targetId: row.target_id != null ? String(row.target_id) : null,
+    targetType: (row.targetType as string) ?? null,
+    targetId: row.targetId != null ? String(row.targetId) : null,
     reason: (row.reason as string) ?? null,
     ip: (row.ip as string) ?? null,
-    statusCode: Number(row.status_code ?? 0),
-    createdAt: String(row.created_at ?? ''),
-    adminId: row.admin_id != null ? Number(row.admin_id) : null,
-    adminNom: (row.admin_nom as string) ?? null,
-    adminEmail: (row.admin_email as string) ?? null,
+    statusCode: Number(row.statusCode ?? 0),
+    createdAt: String(row.createdAt ?? ''),
+    adminId: row.adminId != null ? Number(row.adminId) : null,
+    adminNom: (row.adminNom as string) ?? null,
+    adminEmail: (row.adminEmail as string) ?? null,
   };
 }
 
@@ -738,25 +740,26 @@ export async function fetchAuditActions(): Promise<import('@/types').AuditAction
 /* ── File de modération ─────────────────────────────────────────────────── */
 
 function toReport(row: Record<string, unknown>): import('@/types').Report {
+  // camelCase déjà appliqué par `transformResponse` — cf. toAuditEntry.
   return {
     id: Number(row.id),
-    targetType: (row.target_type as 'message' | 'user') ?? 'user',
-    targetMsgId: row.target_msg_id != null ? Number(row.target_msg_id) : null,
-    targetUserId: row.target_user_id != null ? Number(row.target_user_id) : null,
+    targetType: (row.targetType as 'message' | 'user') ?? 'user',
+    targetMsgId: row.targetMsgId != null ? Number(row.targetMsgId) : null,
+    targetUserId: row.targetUserId != null ? Number(row.targetUserId) : null,
     reason: String(row.reason ?? ''),
     note: (row.note as string) ?? null,
     state: (row.state as import('@/types').ReportState) ?? 'open',
-    createdAt: String(row.created_at ?? ''),
-    reporterId: row.reporter_id != null ? Number(row.reporter_id) : null,
-    reporterNom: (row.reporter_nom as string) ?? null,
-    targetNom: (row.target_nom as string) ?? null,
-    targetExclus: Boolean(row.target_exclus),
-    msgSenderId: row.msg_sender_id != null ? Number(row.msg_sender_id) : null,
-    msgSenderNom: (row.msg_sender_nom as string) ?? null,
-    msgType: row.msg_type != null ? Number(row.msg_type) : null,
-    msgContent: (row.msg_content as string) ?? null,
-    msgDeleted: Boolean(row.msg_deleted),
-    msgSentAt: (row.msg_sent_at as string) ?? null,
+    createdAt: String(row.createdAt ?? ''),
+    reporterId: row.reporterId != null ? Number(row.reporterId) : null,
+    reporterNom: (row.reporterNom as string) ?? null,
+    targetNom: (row.targetNom as string) ?? null,
+    targetExclus: Boolean(row.targetExclus),
+    msgSenderId: row.msgSenderId != null ? Number(row.msgSenderId) : null,
+    msgSenderNom: (row.msgSenderNom as string) ?? null,
+    msgType: row.msgType != null ? Number(row.msgType) : null,
+    msgContent: (row.msgContent as string) ?? null,
+    msgDeleted: Boolean(row.msgDeleted),
+    msgSentAt: (row.msgSentAt as string) ?? null,
     actions: Number(row.actions ?? 0),
   };
 }
@@ -772,9 +775,9 @@ export async function fetchReportActions(id: number): Promise<import('@/types').
     id: Number(row.id),
     action: String(row.action ?? ''),
     note: (row.note as string) ?? null,
-    createdAt: String(row.created_at ?? ''),
-    adminId: row.admin_id != null ? Number(row.admin_id) : null,
-    adminNom: (row.admin_nom as string) ?? null,
+    createdAt: String(row.createdAt ?? ''),
+    adminId: row.adminId != null ? Number(row.adminId) : null,
+    adminNom: (row.adminNom as string) ?? null,
   }));
 }
 
