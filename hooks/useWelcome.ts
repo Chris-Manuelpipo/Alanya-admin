@@ -54,7 +54,7 @@ export function useWelcomeStatus() {
 export function useSaveWelcomeStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<WelcomeStatusConfig>) => saveWelcomeStatus(patch),
+    mutationFn: (config: WelcomeStatusConfig) => saveWelcomeStatus(config),
     onSuccess: (data) => {
       qc.setQueryData(['admin-welcome-status'], data);
     },

@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Image as ImageIcon, Loader2, Radio, Save, Video } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Radio,
+  Save,
+  Trash2,
+  Video,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +24,13 @@ import { StatusBackgroundPicker } from "@/components/preview/StatusBackgroundPic
 import type { PreviewLang } from "@/components/preview/types";
 import { useSaveWelcomeStatus, useWelcomeStatus } from "@/hooks/useWelcome";
 import { cn } from "@/lib/utils";
-import { WELCOME_STATUS_TEXT_MAX, type WelcomeStatusConfig } from "@/types";
+import { emptyStatusBlock } from "@/lib/welcome-status";
 import {
-  CONTENT_LOCALES,
+  WELCOME_STATUS_TEXT_MAX,
+  type WelcomeStatusBlock,
+  type WelcomeStatusConfig,
+} from "@/types";
+import {
   CONTENT_LOCALE_LABELS,
   resolveTranslation,
   untranslatedRequiredLocales,
@@ -30,14 +44,10 @@ const TYPES = [
 
 const EMPTY: WelcomeStatusConfig = {
   enabled: false,
-  type: 0,
-  textFr: "",
-  textEn: "",
-  translations: {},
-  mediaUrl: "",
-  backgroundColor: "",
+  blocks: [],
   updatedAt: null,
   updatedBy: null,
+  supportsMultiple: true,
 };
 
 interface WelcomeStatusEditorProps {
@@ -45,19 +55,38 @@ interface WelcomeStatusEditorProps {
   senderAvatar?: string | null;
 }
 
+const SERVER_TOO_OLD =
+  "Ce serveur n'enregistre qu'un seul élément : déployez la version qui gère les statuts multiples avant d'en ajouter d'autres.";
+
 /**
- * Traductions complétées par les champs hérités `textFr`/`textEn`.
+ * Ce qui empêche un élément d'être livré, ou `null` s'il est complet.
  *
- * L'éditeur ne lit que `translations` ; le serveur peut n'en renvoyer aucune
- * quand la table `welcome_status_config_i18n` manque ou n'a pas encore repris
- * un contenu. Sans ce repli, le champ s'ouvrait vide sur un texte pourtant
- * enregistré, et l'activation était refusée pour « contenu incomplet ».
+ * Miroir de `statusBlockError`
+ * (Alanya-Backend/src/services/welcomeService.js) : l'éditeur doit refuser avec
+ * la même règle que le serveur, sinon l'administrateur découvre le refus au
+ * moment d'activer.
  */
-function withLegacyTranslations(config: WelcomeStatusConfig): WelcomeStatusConfig {
-  const translations = { ...(config.translations ?? {}) };
-  if (!translations.fr?.trim() && config.textFr?.trim()) translations.fr = config.textFr;
-  if (!translations.en?.trim() && config.textEn?.trim()) translations.en = config.textEn;
-  return { ...config, translations };
+function blockError(block: WelcomeStatusBlock, index: number): string | null {
+  const n = index + 1;
+  if (block.type === 0 && !block.translations.fr?.trim()) {
+    return `Élément ${n} : un statut texte exige un texte en français.`;
+  }
+  const missing = untranslatedRequiredLocales(block.translations);
+  if (missing.length) {
+    return `Élément ${n} : traduction manquante — ${missing
+      .map((l) => CONTENT_LOCALE_LABELS[l])
+      .join(", ")}.`;
+  }
+  if (block.type !== 0 && !block.mediaUrl.trim()) {
+    return `Élément ${n} : un statut ${block.type === 1 ? "image" : "vidéo"} exige un média.`;
+  }
+  const tooLong = Object.values(block.translations).find(
+    (v) => (v ?? "").length > WELCOME_STATUS_TEXT_MAX,
+  );
+  if (tooLong != null) {
+    return `Élément ${n} : texte limité à ${WELCOME_STATUS_TEXT_MAX} caractères.`;
+  }
+  return null;
 }
 
 /**
@@ -76,62 +105,70 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
   const [form, setForm] = useState<WelcomeStatusConfig>(EMPTY);
   const [dirty, setDirty] = useState(false);
   const [lang, setLang] = useState<PreviewLang>("fr");
+  /** Élément montré dans l'aperçu — un seul statut s'affiche à la fois. */
+  const [selected, setSelected] = useState(0);
 
   useEffect(() => {
     if (data) {
-      setForm(withLegacyTranslations(data));
+      setForm(data);
       setDirty(false);
     }
   }, [data]);
 
-  function patch(next: Partial<WelcomeStatusConfig>) {
-    setForm((f) => ({ ...f, ...next }));
+  const blocks = form.blocks;
+  // Supprimer le dernier élément laisse `selected` au-delà de la liste : on le
+  // ramène ici plutôt qu'à chacun de ses trois points d'usage.
+  const selectedIndex = Math.min(selected, blocks.length - 1);
+  const current = blocks[selectedIndex];
+  /** Serveur d'avant la 071 : un seul élément est enregistrable. */
+  const locked = !form.supportsMultiple && blocks.length >= 1;
+
+  function patchBlocks(next: WelcomeStatusBlock[]) {
+    setForm((f) => ({ ...f, blocks: next.map((b, i) => ({ ...b, sortOrder: i })) }));
     setDirty(true);
   }
 
-  const translations = form.translations ?? {};
-  const activeText = translations[lang] ?? "";
-  const remaining = WELCOME_STATUS_TEXT_MAX - activeText.length;
+  function updateBlock(index: number, patch: Partial<WelcomeStatusBlock>) {
+    patchBlocks(blocks.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
 
-  const contentError = useMemo(() => {
-    const t = form.translations ?? {};
-    if (form.type === 0 && !t.fr?.trim()) {
-      return "Un statut texte exige un texte en français.";
-    }
-    // Les langues requises le sont dès qu'une langue est saisie, dans les deux
-    // sens ; les langues facultatives retombent sur la chaîne de repli, les
-    // exiger bloquerait l'activation en attendant un traducteur.
-    const missing = untranslatedRequiredLocales(t);
-    if (missing.length > 0) {
-      return `Traduction obligatoire manquante : ${missing
-        .map((l) => CONTENT_LOCALE_LABELS[l])
-        .join(", ")}.`;
-    }
-    if (form.type !== 0 && !form.mediaUrl.trim()) {
-      return `Un statut ${form.type === 1 ? "image" : "vidéo"} exige un média.`;
-    }
-    const tooLong = CONTENT_LOCALES.find(
-      (l) => (t[l] ?? "").length > WELCOME_STATUS_TEXT_MAX,
-    );
-    if (tooLong) {
-      return `Texte limité à ${WELCOME_STATUS_TEXT_MAX} caractères (${CONTENT_LOCALE_LABELS[tooLong]}).`;
-    }
-    return null;
-  }, [form]);
+  function addBlock(type: number) {
+    patchBlocks([...blocks, emptyStatusBlock(type, blocks.length)]);
+    setSelected(blocks.length);
+  }
+
+  function removeBlock(index: number) {
+    patchBlocks(blocks.filter((_, i) => i !== index));
+    setSelected((s) => (s > index ? s - 1 : s));
+  }
+
+  function moveBlock(index: number, dir: -1 | 1) {
+    const j = index + dir;
+    if (j < 0 || j >= blocks.length) return;
+    const next = [...blocks];
+    [next[index], next[j]] = [next[j], next[index]];
+    patchBlocks(next);
+    setSelected(j);
+  }
+
+  const contentError = useMemo(
+    () => form.blocks.map(blockError).find((m) => m != null) ?? null,
+    [form.blocks],
+  );
 
   const previewContent = useMemo<PreviewContent>(
     () => ({
       mode: "status",
-      // Le statut porte les deux langues ; l'app choisit selon la locale du
-      // téléphone, avec repli sur le français si l'anglais est vide.
-      text: resolveTranslation(form.translations ?? {}, lang),
-      type: form.type,
-      mediaUrl: form.mediaUrl,
-      backgroundColor: form.backgroundColor,
+      // Le statut porte toutes ses langues ; l'app choisit selon la locale du
+      // téléphone, avec la chaîne de repli quand la traduction manque.
+      text: current ? resolveTranslation(current.translations, lang) : "",
+      type: current?.type ?? 0,
+      mediaUrl: current?.mediaUrl ?? "",
+      backgroundColor: current?.backgroundColor ?? "",
       senderName: senderName || "Alanya",
       senderAvatar,
     }),
-    [form, lang, senderName, senderAvatar],
+    [current, lang, senderName, senderAvatar],
   );
 
   function save(next: Partial<WelcomeStatusConfig>, successTitle: string) {
@@ -154,8 +191,12 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
 
   function toggleEnabled() {
     const next = !form.enabled;
-    if (next && contentError) {
-      addToast({ title: "Contenu incomplet", description: contentError, variant: "error" });
+    if (next && (contentError || !blocks.length)) {
+      addToast({
+        title: "Contenu incomplet",
+        description: contentError ?? "Ajoutez au moins un élément avant d'activer.",
+        variant: "error",
+      });
       return;
     }
     setForm((f) => ({ ...f, enabled: next }));
@@ -182,7 +223,8 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
               Statut de bienvenue
             </CardTitle>
             <CardDescription>
-              Un statut de 24 h publié pour chaque nouvel inscrit, visible de lui seul
+              Chaque élément devient un statut de 24 h, publié dans cet ordre pour chaque
+              nouvel inscrit et visible de lui seul
             </CardDescription>
           </div>
 
@@ -196,122 +238,63 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
 
       <CardContent>
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <Label>Nature</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {TYPES.map((t) => {
-                  const Icon = t.icon;
-                  const active = form.type === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => patch({ type: t.value })}
-                      aria-pressed={active}
-                      className={cn(
-                        "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-600 dark:bg-amber-950/30 dark:text-amber-300"
-                          : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:text-zinc-400",
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Ajouter
+              </span>
+              {TYPES.map((t) => (
+                <Button
+                  key={t.value}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={locked}
+                  title={locked ? SERVER_TOO_OLD : undefined}
+                  onClick={() => addBlock(t.value)}
+                >
+                  <t.icon className="mr-1 h-4 w-4" /> {t.label}
+                </Button>
+              ))}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>
-                  {form.type === 0
-                    ? lang === "fr"
-                      ? "Texte FR"
-                      : "Texte EN"
-                    : lang === "fr"
-                      ? "Légende FR"
-                      : "Légende EN"}
-                </Label>
-                <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
-                  {CONTENT_LOCALES.map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => setLang(l)}
-                      aria-pressed={lang === l}
-                      className={cn(
-                        "rounded-md px-2.5 py-0.5 text-xs font-medium uppercase transition-colors",
-                        lang === l
-                          ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100"
-                          : "text-zinc-500",
-                      )}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {/* Mieux vaut interdire l'ajout que laisser le deuxième élément
+                disparaître à l'enregistrement : le serveur d'avant la 071 ne
+                lit que le statut unique. */}
+            {locked && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400">
+                {SERVER_TOO_OLD}
+              </p>
+            )}
 
-              <textarea
-                value={activeText}
-                maxLength={WELCOME_STATUS_TEXT_MAX}
-                rows={3}
-                placeholder={lang === "fr" ? "Bienvenue sur Alanya !" : "Welcome to Alanya!"}
-                onChange={(e) =>
-                  patch({
-                    translations: {
-                      ...(form.translations ?? {}),
-                      [lang]: e.target.value,
-                    },
-                  })
-                }
-                className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <div className="flex items-center justify-between text-xs">
-                
-                <span className={cn("tabular-nums", remaining < 20 ? "text-amber-600" : "text-zinc-400")}>
-                  {remaining}
-                </span>
-              </div>
-              {/* Les langues manquantes sont nommées : « Traduction anglaise
-                  obligatoire » restait faux dès qu'un texte était saisi
-                  d'abord en anglais, ou dans une langue ajoutée après. */}
-              {untranslatedRequiredLocales(form.translations).length > 0 && (
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  Traduction obligatoire :{" "}
-                  {untranslatedRequiredLocales(form.translations)
-                    .map((l) => CONTENT_LOCALE_LABELS[l])
-                    .join(", ")}
-                  .
+            {blocks.length === 0 && (
+              <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+                <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                  Aucun élément
                 </p>
-              )}
-            </div>
-
-            {form.type === 0 ? (
-              <StatusBackgroundPicker
-                value={form.backgroundColor}
-                onChange={(backgroundColor) => patch({ backgroundColor })}
-              />
-            ) : (
-              <div className="space-y-2">
-                <Label>Média</Label>
-                {form.mediaUrl ? (
-                  <p className="truncate text-xs text-zinc-500">{form.mediaUrl}</p>
-                ) : (
-                  <p className="text-xs text-amber-600 dark:text-amber-500">
-                    Obligatoire pour un statut {form.type === 1 ? "image" : "vidéo"}.
-                  </p>
-                )}
-                <FileUpload
-                  accept={form.type === 1 ? "image/*" : "video/*"}
-                  maxSize={50 * 1024 * 1024}
-                  onUploadComplete={(url) => patch({ mediaUrl: url })}
-                />
+                <p className="mt-1 text-sm text-zinc-500">
+                  Le statut ne part pas tant qu&apos;il est vide, même actif.
+                </p>
               </div>
             )}
+
+            <div className="space-y-3">
+              {blocks.map((block, index) => (
+                <StatusBlockCard
+                  key={block.id ?? `new-${index}`}
+                  block={block}
+                  index={index}
+                  total={blocks.length}
+                  lang={lang}
+                  selected={index === selectedIndex}
+                  error={blockError(block, index)}
+                  onSelect={() => setSelected(index)}
+                  onUpdate={(patch) => updateBlock(index, patch)}
+                  onMove={(dir) => moveBlock(index, dir)}
+                  onRemove={() => removeBlock(index)}
+                />
+              ))}
+            </div>
 
             {contentError && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400">
@@ -350,10 +333,192 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
               onLangChange={setLang}
               modalTitle="Statut de bienvenue"
             />
+            {blocks.length > 1 && (
+              <p className="mt-1 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+                Élément {selectedIndex + 1} sur {blocks.length} —
+                cliquez une carte pour l&apos;afficher
+              </p>
+            )}
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/* ── Carte d'élément ─────────────────────────────────────────────────────── */
+
+interface StatusBlockCardProps {
+  block: WelcomeStatusBlock;
+  index: number;
+  total: number;
+  lang: PreviewLang;
+  selected: boolean;
+  error: string | null;
+  onSelect: () => void;
+  onUpdate: (patch: Partial<WelcomeStatusBlock>) => void;
+  onMove: (dir: -1 | 1) => void;
+  onRemove: () => void;
+}
+
+function StatusBlockCard({
+  block,
+  index,
+  total,
+  lang,
+  selected,
+  error,
+  onSelect,
+  onUpdate,
+  onMove,
+  onRemove,
+}: StatusBlockCardProps) {
+  const meta = TYPES.find((t) => t.value === block.type) ?? TYPES[0];
+  const Icon = meta.icon;
+  const activeText = block.translations[lang] ?? "";
+  const remaining = WELCOME_STATUS_TEXT_MAX - activeText.length;
+  const missing = untranslatedRequiredLocales(block.translations);
+
+  return (
+    <div
+      onFocusCapture={onSelect}
+      onClick={onSelect}
+      className={cn(
+        "rounded-xl border bg-white transition-colors dark:bg-zinc-900",
+        selected
+          ? "border-amber-300 dark:border-amber-700"
+          : "border-zinc-200 dark:border-zinc-800",
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-800">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100 text-[11px] font-semibold tabular-nums text-zinc-500 dark:bg-zinc-800">
+          {index + 1}
+        </span>
+        <Icon className="h-4 w-4 text-zinc-400" />
+        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          {meta.label}
+        </span>
+
+        <div className="ml-auto flex items-center gap-0.5">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label="Monter"
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+          >
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label="Descendre"
+            disabled={index === total - 1}
+            onClick={() => onMove(1)}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-red-500 hover:text-red-600"
+            aria-label="Supprimer l'élément"
+            onClick={onRemove}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3 p-4">
+        <div className="space-y-2">
+          <Label>Nature</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {TYPES.map((t) => {
+              const active = block.type === t.value;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => onUpdate({ type: t.value })}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-600 dark:bg-amber-950/30 dark:text-amber-300"
+                      : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:text-zinc-400",
+                  )}
+                >
+                  <t.icon className="h-4 w-4" />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            {block.type === 0 ? "Texte" : "Légende"} {lang.toUpperCase()}
+          </Label>
+          <textarea
+            value={activeText}
+            maxLength={WELCOME_STATUS_TEXT_MAX}
+            rows={3}
+            placeholder={block.type === 0 ? "Bienvenue sur Alanya !" : "Légende (optionnelle)"}
+            onChange={(e) =>
+              onUpdate({ translations: { ...block.translations, [lang]: e.target.value } })
+            }
+            className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <div className="flex items-center justify-between text-xs">
+            {missing.length > 0 ? (
+              <span className="text-red-600 dark:text-red-400">
+                Traduction obligatoire :{" "}
+                {missing.map((l) => CONTENT_LOCALE_LABELS[l]).join(", ")}.
+              </span>
+            ) : (
+              <span />
+            )}
+            <span className={cn("tabular-nums", remaining < 20 ? "text-amber-600" : "text-zinc-400")}>
+              {remaining}
+            </span>
+          </div>
+        </div>
+
+        {block.type === 0 ? (
+          <StatusBackgroundPicker
+            value={block.backgroundColor}
+            onChange={(backgroundColor) => onUpdate({ backgroundColor })}
+          />
+        ) : (
+          <div className="space-y-2">
+            <Label>Média</Label>
+            {block.mediaUrl ? (
+              <p className="truncate text-xs text-zinc-500">{block.mediaUrl}</p>
+            ) : (
+              <p className="text-xs text-amber-600 dark:text-amber-500">
+                Obligatoire pour un statut {block.type === 1 ? "image" : "vidéo"}.
+              </p>
+            )}
+            <FileUpload
+              accept={block.type === 1 ? "image/*" : "video/*"}
+              maxSize={50 * 1024 * 1024}
+              onUploadComplete={(url) => onUpdate({ mediaUrl: url })}
+            />
+          </div>
+        )}
+
+        {error && (
+          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+        )}
+      </div>
+    </div>
   );
 }
 

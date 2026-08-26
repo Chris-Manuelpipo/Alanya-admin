@@ -10,6 +10,7 @@ import { mockCountries } from '@/mock/countries';
 import { api } from './api';
 import { normalizeApiDateRange } from '@/lib/period';
 import { toBroadcastApiPayload } from '@/lib/broadcast-payload';
+import { normalizeWelcomeStatus, welcomeStatusPayload } from '@/lib/welcome-status';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
@@ -622,14 +623,14 @@ export async function backfillWelcomeMessages(): Promise<WelcomeBackfillResult> 
  */
 export async function fetchWelcomeStatus(): Promise<import('@/types').WelcomeStatusConfig> {
   const res = await api.get('/admin/welcome/status');
-  return res.data as import('@/types').WelcomeStatusConfig;
+  return normalizeWelcomeStatus(res.data);
 }
 
 export async function saveWelcomeStatus(
-  patch: Partial<import('@/types').WelcomeStatusConfig>,
+  config: import('@/types').WelcomeStatusConfig,
 ): Promise<import('@/types').WelcomeStatusConfig> {
-  const res = await api.put('/admin/welcome/status', patch);
-  return res.data as import('@/types').WelcomeStatusConfig;
+  const res = await api.put('/admin/welcome/status', welcomeStatusPayload(config));
+  return normalizeWelcomeStatus(res.data);
 }
 
 // ── Admin Profile ──

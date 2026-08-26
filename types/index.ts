@@ -527,25 +527,43 @@ export interface WelcomeAdminState {
 }
 
 /**
+ * Un élément du statut de bienvenue : il devient un statut 24 h distinct.
+ *
+ * Même principe que les blocs du message — plusieurs éléments sont publiés
+ * d'un coup, dans l'ordre, à la fin de l'onboarding.
+ */
+export interface WelcomeStatusBlock {
+  /** Absent tant que l'élément n'a jamais été enregistré. */
+  id?: number;
+  sortOrder: number;
+  /** 0 texte · 1 image · 2 vidéo */
+  type: number;
+  /** Texte (ou légende) par locale. */
+  translations: Translations;
+  mediaUrl: string;
+  /** `#RRGGBB` ; vide → indigo de marque `#3F51B5`. Statuts texte seulement. */
+  backgroundColor: string;
+}
+
+/**
  * Statut de bienvenue — réglage **global et non versionné**, contrairement au
  * message : l'interrupteur prend effet sans passer par « Publier ».
- * Un statut 24 h est créé pour chaque nouvel inscrit, visible de lui seul.
+ * Ses statuts 24 h sont créés pour chaque nouvel inscrit, visibles de lui seul.
  */
 export interface WelcomeStatusConfig {
   enabled: boolean;
-  /** 0 texte · 1 image · 2 vidéo */
-  type: number;
-  /** @deprecated Dérivé de `translations.fr` le temps de la double écriture. */
-  textFr: string;
-  /** @deprecated Dérivé de `translations.en`. */
-  textEn: string;
-  /** Texte par locale — forme de référence depuis la migration 053. */
-  translations?: Translations;
-  mediaUrl: string;
-  /** `#RRGGBB` ; vide → indigo de marque `#3F51B5`. */
-  backgroundColor: string;
+  blocks: WelcomeStatusBlock[];
   updatedAt: string | null;
   updatedBy: number | null;
+  /**
+   * Le serveur connaît-il les éléments multiples ?
+   *
+   * Faux tant qu'il répond dans la forme d'avant la migration 071 : il
+   * n'enregistrerait alors que le premier élément, et l'éditeur doit le dire
+   * plutôt que de laisser disparaître les suivants. Transitoire — à retirer
+   * une fois la 071 déployée partout.
+   */
+  supportsMultiple: boolean;
 }
 
 /** `statut.text` est un TINYTEXT — mêmes bornes que `STATUS_TEXT_MAX` côté serveur. */
