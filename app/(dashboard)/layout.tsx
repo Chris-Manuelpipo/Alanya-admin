@@ -19,6 +19,7 @@ import {
   HandHeart,
   Eraser,
   ScrollText,
+  Flag,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ const navItemsAll = [
   { href: "/medias", label: "Médias", icon: ImageIcon, permission: "media.read" },
   { href: "/geolocation", label: "Géolocalisation", icon: MapPin, permission: "stats.read" },
   { href: "/broadcasts", label: "Diffusions", icon: Megaphone, permission: "broadcasts.read" },
+  { href: "/reports", label: "Signalements", icon: Flag, permission: "reports.read" },
   { href: "/welcome", label: "Bienvenue", icon: HandHeart, permission: "welcome.read" },
   // Gardée sur une permission d'écriture, à dessein : la page était réservée au
   // super-admin, et la lecture seule des purges ne suffisait pas à l'ouvrir.

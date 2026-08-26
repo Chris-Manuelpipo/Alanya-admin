@@ -734,3 +734,50 @@ export async function fetchAuditActions(): Promise<import('@/types').AuditAction
     derniere: (row.derniere as string) ?? null,
   }));
 }
+
+/* ── File de modération ─────────────────────────────────────────────────── */
+
+function toReport(row: Record<string, unknown>): import('@/types').Report {
+  return {
+    id: Number(row.id),
+    targetType: (row.target_type as 'message' | 'user') ?? 'user',
+    targetMsgId: row.target_msg_id != null ? Number(row.target_msg_id) : null,
+    targetUserId: row.target_user_id != null ? Number(row.target_user_id) : null,
+    reason: String(row.reason ?? ''),
+    note: (row.note as string) ?? null,
+    state: (row.state as import('@/types').ReportState) ?? 'open',
+    createdAt: String(row.created_at ?? ''),
+    reporterId: row.reporter_id != null ? Number(row.reporter_id) : null,
+    reporterNom: (row.reporter_nom as string) ?? null,
+    targetNom: (row.target_nom as string) ?? null,
+    targetExclus: Boolean(row.target_exclus),
+    msgSenderId: row.msg_sender_id != null ? Number(row.msg_sender_id) : null,
+    msgSenderNom: (row.msg_sender_nom as string) ?? null,
+    msgType: row.msg_type != null ? Number(row.msg_type) : null,
+    msgContent: (row.msg_content as string) ?? null,
+    msgDeleted: Boolean(row.msg_deleted),
+    msgSentAt: (row.msg_sent_at as string) ?? null,
+    actions: Number(row.actions ?? 0),
+  };
+}
+
+export async function fetchReports(state?: string): Promise<import('@/types').Report[]> {
+  const res = await api.get('/admin/reports', { params: state ? { state } : {} });
+  return (Array.isArray(res.data) ? res.data : []).map(toReport);
+}
+
+export async function fetchReportActions(id: number): Promise<import('@/types').ReportAction[]> {
+  const res = await api.get(`/admin/reports/${id}/actions`);
+  return (Array.isArray(res.data) ? res.data : []).map((row: Record<string, unknown>) => ({
+    id: Number(row.id),
+    action: String(row.action ?? ''),
+    note: (row.note as string) ?? null,
+    createdAt: String(row.created_at ?? ''),
+    adminId: row.admin_id != null ? Number(row.admin_id) : null,
+    adminNom: (row.admin_nom as string) ?? null,
+  }));
+}
+
+export async function postReportAction(id: number, action: string, note?: string): Promise<void> {
+  await api.post(`/admin/reports/${id}/actions`, { action, note });
+}

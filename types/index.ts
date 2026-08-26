@@ -685,3 +685,47 @@ export interface AuditActionCount {
   n: number;
   derniere: string | null;
 }
+
+/* ── Modération ─────────────────────────────────────────────────────────── */
+
+/** État d'un signalement. La file se vide de `open` vers les deux issues. */
+export type ReportState = "open" | "reviewing" | "actioned" | "dismissed";
+
+export interface Report {
+  id: number;
+  targetType: "message" | "user";
+  targetMsgId: number | null;
+  targetUserId: number | null;
+  reason: string;
+  /** Précision libre laissée par l'auteur du signalement. */
+  note: string | null;
+  state: ReportState;
+  createdAt: string;
+  reporterId: number | null;
+  reporterNom: string | null;
+  /** Compte visé, quand le signalement porte sur un compte. */
+  targetNom: string | null;
+  targetExclus: boolean;
+  /**
+   * Le message signalé. Servi ici et nulle part ailleurs dans le panneau :
+   * signaler un message, c'est demander qu'il soit lu par l'équipe.
+   * `null` si le message a été supprimé depuis — le signalement lui survit.
+   */
+  msgSenderId: number | null;
+  msgSenderNom: string | null;
+  msgType: number | null;
+  msgContent: string | null;
+  msgDeleted: boolean;
+  msgSentAt: string | null;
+  /** Nombre de décisions déjà prises. */
+  actions: number;
+}
+
+export interface ReportAction {
+  id: number;
+  action: string;
+  note: string | null;
+  createdAt: string;
+  adminId: number | null;
+  adminNom: string | null;
+}
