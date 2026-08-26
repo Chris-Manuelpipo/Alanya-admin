@@ -10,11 +10,13 @@ import {
   Radio,
   Save,
   Trash2,
+  Undo2,
   Video,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
@@ -107,6 +109,7 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
   const [lang, setLang] = useState<PreviewLang>("fr");
   /** Élément montré dans l'aperçu — un seul statut s'affiche à la fois. */
   const [selected, setSelected] = useState(0);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -187,6 +190,22 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
           }),
       },
     );
+  }
+
+  /**
+   * Rend le formulaire à la dernière version enregistrée.
+   *
+   * `data` et non `EMPTY` : le cache react-query est réécrit à chaque
+   * enregistrement réussi, il porte donc l'état du serveur, interrupteur
+   * compris — celui-ci s'enregistre seul et ne doit pas retomber ici.
+   */
+  function discardChanges() {
+    setForm(data ?? EMPTY);
+    // L'élément affiché a pu être supprimé ou déplacé par les modifications
+    // qu'on vient d'annuler : repartir du premier est le seul rang sûr.
+    setSelected(0);
+    setDirty(false);
+    setConfirmDiscard(false);
   }
 
   function toggleEnabled() {
@@ -316,9 +335,20 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
                 Enregistrer le statut
               </Button>
               {dirty && (
-                <span className="text-xs text-amber-600 dark:text-amber-500">
-                  Modifications non enregistrées
-                </span>
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setConfirmDiscard(true)}
+                    disabled={saveMutation.isPending}
+                  >
+                    <Undo2 className="mr-1 h-4 w-4" />
+                    Annuler les modifications
+                  </Button>
+                  <span className="text-xs text-amber-600 dark:text-amber-500">
+                    Modifications non enregistrées
+                  </span>
+                </>
               )}
               <span className="ml-auto text-xs text-zinc-400">
                 Prend effet immédiatement, sans publication
@@ -342,6 +372,18 @@ export function WelcomeStatusEditor({ senderName, senderAvatar }: WelcomeStatusE
           </div>
         </div>
       </CardContent>
+
+      {/* Rendu par un portail : sa place dans l'arbre n'a pas d'incidence. */}
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Annuler les modifications ?"
+        description="Le statut revient à sa dernière version enregistrée. Ce qui n'a pas été enregistré est perdu."
+        confirmLabel="Annuler les modifications"
+        cancelLabel="Continuer l'édition"
+        variant="destructive"
+        onConfirm={discardChanges}
+      />
     </Card>
   );
 }

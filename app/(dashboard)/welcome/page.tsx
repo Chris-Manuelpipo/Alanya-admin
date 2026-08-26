@@ -24,7 +24,7 @@ import {
   untranslatedRequiredLocales,
 } from "@/lib/content-locales";
 import type { WelcomeBlock } from "@/types";
-import { HandHeart, Loader2, Lock, MessageSquare, Radio, Rocket, Save, Users } from "lucide-react";
+import { HandHeart, Loader2, Lock, MessageSquare, Radio, Rocket, Save, Undo2, Users } from "lucide-react";
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -74,6 +74,7 @@ export default function WelcomePage() {
   );
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmBackfill, setConfirmBackfill] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   useEffect(() => {
     if (!isSuper && !isLoading) {
@@ -96,6 +97,19 @@ export default function WelcomePage() {
       },
       onError: () => addToast({ title: "Échec de l'enregistrement", variant: "error" }),
     });
+  }
+
+  /**
+   * Rend l'éditeur au dernier brouillon enregistré.
+   *
+   * Même source que l'effet de chargement : le cache react-query, réécrit à
+   * chaque enregistrement réussi. Un brouillon absent laisse une liste vide,
+   * ce qui est bien l'état d'où l'on est parti.
+   */
+  function handleDiscard() {
+    setBlocks(data?.draft?.blocks ?? []);
+    setDirty(false);
+    setConfirmDiscard(false);
   }
 
   function handlePublish() {
@@ -245,6 +259,16 @@ export default function WelcomePage() {
                   )}
                   Enregistrer brouillon
                 </Button>
+                {dirty && (
+                  <Button
+                    onClick={() => setConfirmDiscard(true)}
+                    disabled={saveMutation.isPending}
+                    variant="ghost"
+                  >
+                    <Undo2 className="mr-1 h-4 w-4" />
+                    Annuler les modifications
+                  </Button>
+                )}
                 <Button
                   onClick={() => setConfirmPublish(true)}
                   disabled={publishMutation.isPending || untranslated.length > 0}
@@ -347,6 +371,17 @@ export default function WelcomePage() {
         confirmLabel="Lancer"
         pending={backfillMutation.isPending}
         onConfirm={handleBackfill}
+      />
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Annuler les modifications ?"
+        description="L'éditeur revient au dernier brouillon enregistré. Ce qui n'a pas été enregistré est perdu."
+        confirmLabel="Annuler les modifications"
+        cancelLabel="Continuer l'édition"
+        variant="destructive"
+        onConfirm={handleDiscard}
       />
     </div>
   );
