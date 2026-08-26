@@ -18,6 +18,7 @@ import {
   UserCircle,
   HandHeart,
   Eraser,
+  ScrollText,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,9 @@ const baseNavItems = [
   { href: "/medias", label: "Médias", icon: ImageIcon },
   { href: "/geolocation", label: "Géolocalisation", icon: MapPin },
   { href: "/broadcasts", label: "Diffusions", icon: Megaphone },
+  // Lisible par tout administrateur, délibérément : un journal que seul son
+  // lecteur le plus puissant peut consulter ne protège personne de lui.
+  { href: "/audit", label: "Activité admin", icon: ScrollText },
   { href: "/settings", label: "Paramètres", icon: Settings },
   { href: "/profile", label: "Mon profil", icon: UserCircle },
 ];

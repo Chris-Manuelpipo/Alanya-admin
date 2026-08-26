@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
+import { useAudit } from "@/hooks/useAudit";
 import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
@@ -64,6 +65,11 @@ export default function UserDetailPage() {
   const { data: user, isLoading: userLoading } = useUserDetail(id);
   const { data: activity, isLoading: activityLoading } = useUserActivity(id);
   const { data: logins, isLoading: loginsLoading } = useUserLogins(id);
+  const { data: audit, isLoading: auditLoading } = useAudit({
+    targetType: "user",
+    targetId: id,
+    limit: 20,
+  });
 
   if (userLoading) {
     return <UserDetailPageSkeleton />;
@@ -406,6 +412,41 @@ export default function UserDetailPage() {
                     <p className="text-center text-zinc-400 text-sm py-6">Aucune connexion enregistrée</p>
                   )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Ce que l'équipe a fait à ce compte. Le lien manquant du jour où
+              quelqu'un demande « qui m'a banni, et pourquoi ? ». */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Actions sur ce compte</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {auditLoading ? (
+                <LoginHistorySkeleton count={2} />
+              ) : audit && audit.length > 0 ? (
+                <div className="space-y-3">
+                  {audit.map((entry) => (
+                    <div key={entry.id} className="flex items-start gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-xs text-zinc-600 dark:text-zinc-400">{entry.action}</p>
+                        <p className="mt-0.5 text-sm">
+                          {entry.adminNom ?? <span className="italic text-zinc-400">compte supprimé</span>}
+                          {entry.reason ? <span className="text-zinc-500"> — {entry.reason}</span> : null}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right text-xs text-zinc-500">
+                        <p>{new Date(entry.createdAt).toLocaleDateString("fr")}</p>
+                        <p>{new Date(entry.createdAt).toLocaleTimeString("fr", { hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-zinc-400">
+                  Aucune action d&apos;administration sur ce compte
+                </p>
               )}
             </CardContent>
           </Card>

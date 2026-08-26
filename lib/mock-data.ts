@@ -667,3 +667,53 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
   if (USE_MOCK) return;
   await api.put('/admin/me/password', { currentPassword, newPassword });
 }
+
+/* ── Journal des actions administrateur ─────────────────────────────────── */
+
+/**
+ * Le serveur renvoie les colonnes telles quelles ; la conversion vit ici plutôt
+ * que dans le contrôleur, comme pour les autres ressources du panneau.
+ */
+function toAuditEntry(row: Record<string, unknown>): import('@/types').AuditEntry {
+  return {
+    id: Number(row.id),
+    action: String(row.action ?? ''),
+    route: String(row.route ?? ''),
+    targetType: (row.target_type as string) ?? null,
+    targetId: row.target_id != null ? String(row.target_id) : null,
+    reason: (row.reason as string) ?? null,
+    ip: (row.ip as string) ?? null,
+    statusCode: Number(row.status_code ?? 0),
+    createdAt: String(row.created_at ?? ''),
+    adminId: row.admin_id != null ? Number(row.admin_id) : null,
+    adminNom: (row.admin_nom as string) ?? null,
+    adminEmail: (row.admin_email as string) ?? null,
+  };
+}
+
+export interface AuditQuery {
+  adminId?: number;
+  action?: string;
+  targetType?: string;
+  targetId?: string | number;
+  before?: number;
+  limit?: number;
+}
+
+export async function fetchAudit(query: AuditQuery = {}): Promise<import('@/types').AuditEntry[]> {
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value != null && value !== '') params[key] = String(value);
+  }
+  const res = await api.get('/admin/audit', { params });
+  return (Array.isArray(res.data) ? res.data : []).map(toAuditEntry);
+}
+
+export async function fetchAuditActions(): Promise<import('@/types').AuditActionCount[]> {
+  const res = await api.get('/admin/audit/actions');
+  return (Array.isArray(res.data) ? res.data : []).map((row: Record<string, unknown>) => ({
+    action: String(row.action ?? ''),
+    n: Number(row.n ?? 0),
+    derniere: (row.derniere as string) ?? null,
+  }));
+}

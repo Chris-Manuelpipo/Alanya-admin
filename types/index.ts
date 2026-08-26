@@ -649,3 +649,32 @@ export interface PurgeSetting {
   updatedAt: string | null;
   updatedBy: string | null;
 }
+
+/**
+ * Une action d'administration enregistrée.
+ *
+ * `action` est un verbe métier (`users.ban`), `route` la méthode et le chemin.
+ * Les deux coexistent : sur une route cartographiée ils disent la même chose,
+ * mais une ligne `unmapped` n'aurait aucun sens sans le second.
+ */
+export interface AuditEntry {
+  id: number;
+  action: string;
+  route: string;
+  targetType: string | null;
+  targetId: string | null;
+  reason: string | null;
+  ip: string | null;
+  statusCode: number;
+  createdAt: string;
+  adminId: number | null;
+  adminNom: string | null;
+  adminEmail: string | null;
+}
+
+/** Vocabulaire réellement présent dans le journal, pour alimenter les filtres. */
+export interface AuditActionCount {
+  action: string;
+  n: number;
+  derniere: string | null;
+}
