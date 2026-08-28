@@ -70,6 +70,12 @@ export function mockUsersResponse(params: UsersApiParams): UsersResponse {
   if (params.status === 'admin') items = items.filter(u => u.typeCompte >= 1);
   if (params.idPays) items = items.filter(u => String(u.idPays) === params.idPays);
   if (params.accountType) items = items.filter(u => String(u.accountType ?? 0) === params.accountType);
+  // Plage de date : miroir du backend (bornes sur createdAt, inclusives).
+  const fromMs = params.from ? Date.parse(params.from) : NaN;
+  const toMs = params.to ? Date.parse(params.to) : NaN;
+  const ts = (u: import('@/types').User) => (u.createdAt ? new Date(u.createdAt).getTime() : 0);
+  if (!isNaN(fromMs)) items = items.filter((u) => ts(u) >= fromMs);
+  if (!isNaN(toMs)) items = items.filter((u) => ts(u) <= toMs);
   if (params.sort) {
     const dir = params.order === 'asc' ? 1 : -1;
     items.sort((a, b) => {

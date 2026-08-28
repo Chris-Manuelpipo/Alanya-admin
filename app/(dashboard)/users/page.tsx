@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
 import { useCountries } from "@/hooks/useCountries";
@@ -9,6 +9,7 @@ import { useQueryStates } from "@/hooks/useQueryState";
 import { ErrorState } from "@/components/ui/error-state";
 import { MenuRoot, MenuTrigger, MenuContent, MenuItem } from "@/components/ui/menu";
 import { formatDisplay } from "@/lib/alanya-phone";
+import { periodToRange, normalizeApiDateRange } from "@/lib/period";
 import { cn } from "@/lib/utils";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -86,6 +87,18 @@ export default function UsersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
+  // Plage de date effective : les dates explicites priment sur la présélection
+  // Période. Vide → le serveur n'applique aucun filtre de date.
+  const effectiveRange = useMemo(() => {
+    if (dateFrom || dateTo) {
+      return normalizeApiDateRange(dateFrom, dateTo);
+    }
+    if (period) {
+      return normalizeApiDateRange(periodToRange(period).from, periodToRange(period).to);
+    }
+    return null;
+  }, [period, dateFrom, dateTo]);
+
   const { data, isLoading, isFetching, isError, refetch } = useUsers({
     search,
     status,
@@ -95,6 +108,8 @@ export default function UsersPage() {
     accountType,
     sort: sort as UsersApiParams['sort'],
     order: order as UsersApiParams['order'],
+    from: effectiveRange?.from,
+    to: effectiveRange?.to,
   });
   const { data: countries = [] } = useCountries();
   const banMutation = useBanUser();
@@ -113,8 +128,8 @@ export default function UsersPage() {
     status: status || undefined,
     idPays: idPays || undefined,
     account_type: accountType || undefined,
-    from: dateFrom || undefined,
-    to: dateTo || undefined,
+    from: effectiveRange?.from.split("T")[0] || undefined,
+    to: effectiveRange?.to.split("T")[0] || undefined,
     sort,
     order,
   };

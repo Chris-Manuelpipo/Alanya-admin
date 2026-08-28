@@ -29,6 +29,18 @@ describe('mockUsersResponse', () => {
     expect(page1.concat(page2).length).toBeLessThanOrEqual(all.length);
   });
 
+  it('filtre par plage de dates (bornes inclusives, createdAt)', () => {
+    const fromMs = Date.parse('2025-01-01T00:00:00Z');
+    const toMs = Date.parse('2025-12-31T23:59:59Z');
+    const out = mockUsersResponse({ from: '2025-01-01T00:00:00Z', to: '2025-12-31T23:59:59Z' });
+    expect(out.items.every((u) => {
+      const t = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+      return t >= fromMs && t <= toMs;
+    })).toBe(true);
+    // L'utilisateur inscrit en décembre 2024 est exclu de 2025.
+    expect(out.items.some((u) => u.createdAt?.startsWith('2024'))).toBe(false);
+  });
+
   it('traduit accountType → account_type comme le backend (contrat partagé)', () => {
     expect(buildUsersApiParams({ accountType: '1' }).account_type).toBe('1');
   });
