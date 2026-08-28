@@ -63,6 +63,10 @@ export function mockUsersResponse(params: {
   status?: string;
   page?: number;
   limit?: number;
+  idPays?: string;
+  accountType?: string;
+  sort?: string;
+  order?: string;
 }): UsersResponse {
   let items = [...mockUsers];
   const s = params.search?.toLowerCase();
@@ -72,6 +76,18 @@ export function mockUsersResponse(params: {
   if (params.status === 'online') items = items.filter(u => u.isOnline);
   if (params.status === 'banned') items = items.filter(u => u.exclus);
   if (params.status === 'admin') items = items.filter(u => u.typeCompte >= 1);
+  if (params.idPays) items = items.filter(u => String(u.idPays) === params.idPays);
+  if (params.accountType) items = items.filter(u => String(u.accountType ?? 0) === params.accountType);
+  if (params.sort) {
+    const dir = params.order === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+      if (params.sort === 'nom') return dir * (a.nom || '').localeCompare(b.nom || '');
+      const key = params.sort === 'last_seen' ? 'lastSeen' : 'createdAt';
+      const av = a[key] ? new Date(a[key]!).getTime() : 0;
+      const bv = b[key] ? new Date(b[key]!).getTime() : 0;
+      return dir * (av - bv);
+    });
+  }
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
   const start = (page - 1) * limit;

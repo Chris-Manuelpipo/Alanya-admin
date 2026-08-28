@@ -136,6 +136,8 @@ export async function fetchUsers(params: {
   order?: string;
 }): Promise<UsersResponse> {
   if (USE_MOCK) return mockUsersResponse(params);
+  // Le backend lit les filtres avec les noms de colonnes MySQL: idPays
+  // (camelCase) mais account_type (snake_case). Aucune conversion auto.
   const apiParams: Record<string, string | number | undefined> = { ...params };
   if (params.accountType != null && params.accountType !== '') {
     apiParams.account_type = params.accountType;

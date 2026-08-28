@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUsers, useBanUser, useUnbanUser, useSetUserRole, useDeleteUser } from "@/hooks/useUsers";
+import { useCountries } from "@/hooks/useCountries";
 import { formatDisplay } from "@/lib/alanya-phone";
 import { cn } from "@/lib/utils";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
@@ -61,7 +62,7 @@ export default function UsersPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [idPays, setIdPays] = useState("");
+  const [idPays, setIdPays] = useState(searchParams.get("idPays") || "");
   const [accountType, setAccountType] = useState("");
   const [period, setPeriod] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -71,6 +72,7 @@ export default function UsersPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const { data, isLoading, isFetching } = useUsers({ search, status, page, limit: 20, idPays, accountType, sort, order });
+  const { data: countries = [] } = useCountries();
   const banMutation = useBanUser();
   const unbanMutation = useUnbanUser();
   const roleMutation = useSetUserRole();
@@ -180,11 +182,9 @@ export default function UsersPage() {
               <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Pays</label>
               <select value={idPays} onChange={(e) => { setIdPays(e.target.value); setPage(1); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <option value="">Tous</option>
-                <option value="1">France</option>
-                <option value="2">Côte d&apos;Ivoire</option>
-                <option value="3">Cameroun</option>
-                <option value="4">Sénégal</option>
-                <option value="5">Maroc</option>
+                {countries.map((c) => (
+                  <option key={c.idPays} value={String(c.idPays)}>{c.libelle}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
@@ -242,7 +242,7 @@ export default function UsersPage() {
           )}
           {idPays && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
-              {idPays === "1" ? "France" : idPays === "2" ? "Côte d'Ivoire" : idPays === "3" ? "Cameroun" : idPays === "4" ? "Sénégal" : idPays === "5" ? "Maroc" : idPays}
+              {countries.find((c) => String(c.idPays) === idPays)?.libelle ?? idPays}
               <button onClick={() => { setIdPays(""); setPage(1); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
                 <X className="h-3 w-3" />
               </button>
