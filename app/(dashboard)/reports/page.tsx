@@ -21,21 +21,10 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { FeedListSkeleton } from "@/components/skeletons";
 import { useHandleReport, useReportActions, useReports } from "@/hooks/useReports";
+import { reportReasonLabel } from "@/lib/report-labels";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { Report, ReportState } from "@/types";
-
-/** Libellés alignés sur ceux de l'application — mêmes clés, même vocabulaire. */
-const REASONS: Record<string, string> = {
-  harassment: "Harcèlement ou intimidation",
-  hate: "Propos haineux",
-  violence: "Violence ou menaces",
-  sexual: "Contenu sexuel",
-  scam: "Arnaque ou fraude",
-  spam: "Spam",
-  impersonation: "Usurpation d'identité",
-  other: "Autre",
-};
 
 const STATES: { value: ReportState | ""; label: string }[] = [
   { value: "open", label: "À traiter" },
@@ -290,7 +279,7 @@ export default function ReportsPage() {
                     ) : (
                       <UserX className="h-4 w-4 text-zinc-400" />
                     )}
-                    {REASONS[r.reason] ?? r.reason}
+                    {reportReasonLabel(r.reason)}
                   </CardTitle>
                   <CardDescription>
                     Signalé par {r.reporterNom ?? "un compte supprimé"} · {age(r.createdAt)}
