@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { FeedListSkeleton } from "@/components/skeletons";
+import { ErrorState } from "@/components/ui/error-state";
 import { useHandleReport, useReportActions, useReports } from "@/hooks/useReports";
 import { reportReasonLabel } from "@/lib/report-labels";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -92,7 +93,7 @@ export default function ReportsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data, isLoading, isFetching, refetch } = useReports({
+  const { data, isLoading, isFetching, isError, refetch } = useReports({
     state: state || undefined,
     search: debouncedSearch,
     page,
@@ -234,7 +235,9 @@ export default function ReportsPage() {
 
       {isLoading && <FeedListSkeleton count={4} />}
 
-      {!isLoading && rows.length === 0 && (
+      {!isLoading && !isFetching && isError && <ErrorState onRetry={() => refetch()} />}
+
+      {!isLoading && !isFetching && !isError && rows.length === 0 && (
         <Card className="border-0 shadow-sm">
           <CardContent className="py-16 text-center">
             <ShieldQuestion className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
