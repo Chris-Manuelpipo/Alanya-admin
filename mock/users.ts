@@ -1,4 +1,5 @@
 import { User, UsersResponse, UserDetail, UserActivity, LoginEntry } from '@/types';
+import { UsersApiParams } from '@/lib/api-params';
 
 const baseUserFields = {
   accountType: 0 as const,
@@ -58,16 +59,7 @@ export const mockLoginHistory: LoginEntry[] = [
   { idAccess: 2, dateLogin: '2026-05-20T10:00:00Z', os_system: 'iOS', device: 'iPhone 14', ipAdress: '10.0.0.5' },
 ];
 
-export function mockUsersResponse(params: {
-  search?: string;
-  status?: string;
-  page?: number;
-  limit?: number;
-  idPays?: string;
-  accountType?: string;
-  sort?: string;
-  order?: string;
-}): UsersResponse {
+export function mockUsersResponse(params: UsersApiParams): UsersResponse {
   let items = [...mockUsers];
   const s = params.search?.toLowerCase();
   if (s) {

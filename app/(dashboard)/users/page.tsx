@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { ExportDialog } from "@/components/export/ExportDialog";
 import type { AdminExportParams } from "@/lib/admin-export";
+import type { UsersApiParams } from "@/lib/api-params";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const roleLabels: Record<number, string> = { 0: "User", 1: "Admin", 2: "Super Admin" };
@@ -85,7 +86,16 @@ export default function UsersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const { data, isLoading, isFetching, isError, refetch } = useUsers({ search, status, page, limit: 20, idPays, accountType, sort, order });
+  const { data, isLoading, isFetching, isError, refetch } = useUsers({
+    search,
+    status,
+    page,
+    limit: 20,
+    idPays,
+    accountType,
+    sort: sort as UsersApiParams['sort'],
+    order: order as UsersApiParams['order'],
+  });
   const { data: countries = [] } = useCountries();
   const banMutation = useBanUser();
   const unbanMutation = useUnbanUser();

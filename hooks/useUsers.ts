@@ -14,6 +14,7 @@ import {
   checkAssignablePhone,
 } from '@/lib/mock-data';
 import type { CreateUserPayload, ReservedAlanyaPhonesParams, SetUserSoclePayload } from '@/types';
+import type { UsersApiParams } from '@/lib/api-params';
 
 interface UsersParams {
   search?: string;
@@ -22,8 +23,8 @@ interface UsersParams {
   limit?: number;
   idPays?: string;
   accountType?: string;
-  sort?: string;
-  order?: string;
+  sort?: UsersApiParams['sort'];
+  order?: UsersApiParams['order'];
 }
 
 export function useUsers(params: UsersParams) {
