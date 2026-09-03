@@ -80,13 +80,10 @@ export const mockAnalytics: Analytics = {
     participants: 1770,
     attendees: 1115,
     invitations: 1458,
-    accepted: 1120,
-    declined: 240,
-    invited: 98,
-    noShow: 392,
+    joined: 1120,
+    invitedNeverJoined: 338,
     attendanceRate: 63,
-    acceptanceRate: 77,
-    noShowRate: 35,
+    joinRate: 77,
   },
   users: {
     byRole: [

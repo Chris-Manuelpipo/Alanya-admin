@@ -206,18 +206,14 @@ export interface MeetingStats {
   attendees: number;
   /** Participants hors organisateur — les seuls à avoir eu une invitation à laquelle répondre. */
   invitations: number;
-  accepted: number;
-  declined: number;
-  /** Invités sans réponse. */
-  invited: number;
-  /** Ont accepté puis ne sont jamais venus. */
-  noShow: number;
-  /** attendees / participants — présence réelle, pas réponse à l'invitation. */
+  /** Ont rejoint au moins une fois (hors organisateur). */
+  joined: number;
+  /** Invités, jamais rejoint. */
+  invitedNeverJoined: number;
+  /** attendees / participants — présence réelle, à la seconde près. */
   attendanceRate: number;
-  /** accepted / invitations. */
-  acceptanceRate: number;
-  /** noShow / accepted. */
-  noShowRate: number;
+  /** joined / invitations. */
+  joinRate: number;
 }
 
 export interface UserAnalytics {

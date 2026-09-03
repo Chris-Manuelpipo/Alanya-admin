@@ -151,9 +151,8 @@ export default function AnalyticsPage() {
     () =>
       data
         ? [
-            { name: "Acceptés", value: data.meetings.accepted },
-            { name: "Refusés", value: data.meetings.declined },
-            { name: "Sans réponse", value: data.meetings.invited },
+            { name: "Ont rejoint", value: data.meetings.joined },
+            { name: "Jamais rejoint", value: data.meetings.invitedNeverJoined },
           ]
         : [],
     [data]
@@ -271,7 +270,7 @@ export default function AnalyticsPage() {
             <StatCard title="Réunions" value={data.meetings.total} icon={Video} color="#6366f1" subtitle={`${data.meetings.ended.toLocaleString()} terminées`} />
             <StatCard title="Durée réelle moyenne" value={formatDuration(data.meetings.avgRealDuration)} icon={Clock} color="#8b5cf6" subtitle={`${formatMinutes(data.meetings.avgPlannedMinutes)} planifiées`} />
             <StatCard title="Taux de présence" value={`${data.meetings.attendanceRate}%`} icon={CheckCircle2} color="#22c55e" subtitle={`${data.meetings.attendees.toLocaleString()} présents sur ${data.meetings.participants.toLocaleString()}`} />
-            <StatCard title="No-show" value={`${data.meetings.noShowRate}%`} icon={UsersRound} color="#ef4444" subtitle={`${data.meetings.noShow.toLocaleString()} acceptés jamais venus`} />
+            <StatCard title="Taux de participation" value={`${data.meetings.joinRate}%`} icon={UsersRound} color="#ef4444" subtitle={`${data.meetings.invitedNeverJoined.toLocaleString()} invités jamais venus`} />
           </div>
 
           <SectionTitle>Utilisateurs &amp; conversations</SectionTitle>
