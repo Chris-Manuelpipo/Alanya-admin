@@ -134,6 +134,8 @@ export async function fetchUsers(params: {
   accountType?: string;
   sort?: string;
   order?: string;
+  /** `never` | `stale` | `recent` — état de sauvegarde du compte. */
+  backup?: string;
 }): Promise<UsersResponse> {
   if (USE_MOCK) return mockUsersResponse(params);
   const apiParams: Record<string, string | number | undefined> = { ...params };
@@ -781,6 +783,89 @@ export async function fetchAuditActions(): Promise<import('@/types').AuditAction
     n: Number(row.n ?? 0),
     derniere: (row.derniere as string) ?? null,
   }));
+}
+
+/* ── Sauvegardes du parc ────────────────────────────────────────────────── */
+
+export async function fetchBackupOverview(): Promise<import('@/types').BackupOverview> {
+  const res = await api.get('/admin/backup/overview');
+  const d = res.data ?? {};
+  return {
+    staleDays: Number(d.staleDays ?? 30),
+    comptes: Number(d.comptes ?? 0),
+    avecSauvegarde: Number(d.avecSauvegarde ?? 0),
+    recentes: Number(d.recentes ?? 0),
+    perimees: Number(d.perimees ?? 0),
+    jamais: Number(d.jamais ?? 0),
+    octetsTotal: Number(d.octetsTotal ?? 0),
+    derniere: (d.derniere as string) ?? null,
+    couverture: Number(d.couverture ?? 0),
+  };
+}
+
+export async function fetchBackupKeyUsage(): Promise<import('@/types').BackupKeyUsage[]> {
+  const res = await api.get('/admin/backup/key-usage');
+  return (Array.isArray(res.data) ? res.data : []).map((r: Record<string, unknown>) => ({
+    kid: Number(r.kid ?? 0),
+    comptes: Number(r.comptes ?? 0),
+    derniere: (r.derniere as string) ?? null,
+  }));
+}
+
+/* ── Clés de sauvegarde ─────────────────────────────────────────────────── */
+
+export interface BackupKeyAccessQuery {
+  alanyaId?: number;
+  outcome?: 'servie' | 'refusee';
+  since?: string;
+  limit?: number;
+}
+
+function toBackupKeyAccess(
+  row: Wire<import('@/types').BackupKeyAccess>,
+): import('@/types').BackupKeyAccess {
+  // camelCase déjà appliqué par `transformResponse` — cf. toAuditEntry.
+  return {
+    id: Number(row.id),
+    alanyaId: Number(row.alanyaId ?? 0),
+    kid: row.kid != null ? Number(row.kid) : null,
+    outcome: (row.outcome as 'servie' | 'refusee') ?? 'servie',
+    reason: (row.reason as string) ?? null,
+    ip: (row.ip as string) ?? null,
+    deviceId: (row.deviceId as string) ?? null,
+    userAgent: (row.userAgent as string) ?? null,
+    createdAt: String(row.createdAt ?? ''),
+    compteNom: (row.compteNom as string) ?? null,
+    comptePhone: (row.comptePhone as string) ?? null,
+  };
+}
+
+export async function fetchBackupKeyAccess(
+  query: BackupKeyAccessQuery = {},
+): Promise<import('@/types').BackupKeyAccess[]> {
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value != null && value !== '') params[key] = String(value);
+  }
+  const res = await api.get('/admin/backup/key-access', { params });
+  return (Array.isArray(res.data) ? res.data : []).map(toBackupKeyAccess);
+}
+
+export async function fetchBackupKeyAccessSummary(
+  days = 7,
+): Promise<import('@/types').BackupKeyAccessSummary> {
+  const res = await api.get('/admin/backup/key-access/summary', {
+    params: { days: String(days) },
+  });
+  const d = res.data ?? {};
+  return {
+    days: Number(d.days ?? days),
+    total: Number(d.total ?? 0),
+    refus: Number(d.refus ?? 0),
+    comptes: Number(d.comptes ?? 0),
+    adresses: Number(d.adresses ?? 0),
+    derniere: (d.derniere as string) ?? null,
+  };
 }
 
 /* ── File de modération ─────────────────────────────────────────────────── */

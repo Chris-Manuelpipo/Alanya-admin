@@ -44,12 +44,46 @@ export interface User {
   excludeReason: string | null;
   createdAt: string | null;
   paysLibelle: string | null;
+
+  /** Dernière sauvegarde déclarée par l'appareil. `null` = jamais sauvegardé. */
+  backupLastAt: string | null;
+  backupBytes: number | null;
+  backupMessageCount: number | null;
+}
+
+/** État des sauvegardes du parc. Lecture seule : le serveur ne détient aucune
+ *  archive — elles sont sur le Drive de l'inscrit ou dans son téléphone. */
+export interface BackupOverview {
+  /** Au-delà, une sauvegarde est dite périmée. Vient du serveur pour que la
+   *  règle ne puisse pas diverger entre les deux côtés. */
+  staleDays: number;
+  comptes: number;
+  avecSauvegarde: number;
+  recentes: number;
+  perimees: number;
+  jamais: number;
+  octetsTotal: number;
+  derniere: string | null;
+  /** Part du parc réellement protégée, en pourcentage. */
+  couverture: number;
+}
+
+/** Combien de comptes portent chaque version de clé. Après une rotation, dit
+ *  combien de sauvegardes deviendraient illisibles si l'on retirait la version
+ *  précédente trop tôt. */
+export interface BackupKeyUsage {
+  kid: number;
+  comptes: number;
+  derniere: string | null;
 }
 
 export interface UserDetail extends User {
   fcmToken: string;
   deviceID: string;
   paysPrefix: string;
+  backupKid: number | null;
+  /** Adresse Google masquée du compte de dépôt, telle que le serveur la garde. */
+  backupAccountHint: string | null;
 }
 
 export interface UserActivity {
@@ -693,6 +727,40 @@ export interface AuditEntry {
   adminId: number | null;
   adminNom: string | null;
   adminEmail: string | null;
+}
+
+/**
+ * Une délivrance de clé de sauvegarde, ou son refus.
+ *
+ * Journal séparé de `AuditEntry` parce que les deux n'ont pas la même nature :
+ * l'audit recense des gestes rares et délibérés d'administrateur, celui-ci une
+ * opération de routine que chaque inscrit déclenche à chaque sauvegarde. Les
+ * mêler noierait le premier sous le second.
+ */
+export interface BackupKeyAccess {
+  id: number;
+  alanyaId: number;
+  /** Version de clé demandée. `null` = version courante, donc une sauvegarde ;
+   *  renseignée = une restauration. */
+  kid: number | null;
+  outcome: 'servie' | 'refusee';
+  reason: string | null;
+  ip: string | null;
+  deviceId: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  compteNom: string | null;
+  comptePhone: string | null;
+}
+
+/** Vue d'ensemble sur une fenêtre : ce qui répond à « rien d'anormal ? ». */
+export interface BackupKeyAccessSummary {
+  days: number;
+  total: number;
+  refus: number;
+  comptes: number;
+  adresses: number;
+  derniere: string | null;
 }
 
 /** Vocabulaire réellement présent dans le journal, pour alimenter les filtres. */

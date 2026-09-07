@@ -19,6 +19,8 @@ import {
   HandHeart,
   Eraser,
   ScrollText,
+  KeyRound,
+  DatabaseBackup,
   Flag,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -53,6 +55,14 @@ const navItemsAll = [
   // Lisible par tout administrateur, délibérément : un journal que seul son
   // lecteur le plus puissant peut consulter ne protège personne de lui.
   { href: "/audit", label: "Activité admin", icon: ScrollText, permission: "audit.read" },
+  // Même permission que l'audit : c'est le même métier, celui de constater. Une
+  // page à part cependant — chaque inscrit demande sa clé à chaque sauvegarde,
+  // et ces milliers de lignes de routine noieraient le journal des gestes
+  // d'administrateur.
+  // Constat, pas action : le serveur ne détient aucune archive. D'où
+  // `stats.read` — c'est une vue d'ensemble du parc, pas un pouvoir de plus.
+  { href: "/backups", label: "Sauvegardes", icon: DatabaseBackup, permission: "stats.read" },
+  { href: "/backup-keys", label: "Clés de sauvegarde", icon: KeyRound, permission: "audit.read" },
   { href: "/settings", label: "Paramètres", icon: Settings, permission: "settings.read" },
   { href: "/profile", label: "Mon profil", icon: UserCircle, permission: "profile.read" },
 ];
