@@ -18,6 +18,7 @@ import {
   UserCircle,
   HandHeart,
   Eraser,
+  HeartPulse,
   ScrollText,
   Flag,
 } from "lucide-react";
@@ -53,6 +54,11 @@ const navItemsAll = [
   // Lisible par tout administrateur, délibérément : un journal que seul son
   // lecteur le plus puissant peut consulter ne protège personne de lui.
   { href: "/audit", label: "Activité admin", icon: ScrollText, permission: "audit.read" },
+  // Sur `stats.read` plutôt qu'une permission dédiée : créer une permission
+  // aurait imposé une migration et une reconfiguration de tous les rôles pour
+  // une page en lecture seule, qui n'expose que des compteurs et des messages
+  // d'erreur techniques — rien qu'un lecteur de statistiques ne puisse voir.
+  { href: "/sante", label: "Santé du service", icon: HeartPulse, permission: "stats.read" },
   { href: "/settings", label: "Paramètres", icon: Settings, permission: "settings.read" },
   { href: "/profile", label: "Mon profil", icon: UserCircle, permission: "profile.read" },
 ];

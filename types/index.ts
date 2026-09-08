@@ -799,3 +799,55 @@ export interface AiReviewResult {
   findings: AiFinding[];
   model: string;
 }
+
+// ── Santé du service ───────────────────────────────────────────────────
+//
+// Ce que la supervision externe ne peut pas voir : un job de fond en échec
+// silencieux, une purge qui ne tourne plus, un pool de connexions saturé.
+// Le serveur, lui, répond parfaitement dans ces trois cas.
+
+export interface JobEnEchec {
+  id: number;
+  kind: string;
+  tentatives: number;
+  tentativesMax: number;
+  echoueLe: string;
+  erreur: string | null;
+}
+
+export interface FileDeJobs {
+  enAttente: number;
+  verrouilles: number;
+  enEchec: number;
+  workerActif: boolean;
+  derniersEchecs: JobEnEchec[];
+}
+
+export interface PurgeDernierPassage {
+  name: string;
+  /** `null` = cette purge n'a jamais tourné. C'est le cas qu'il faut voir. */
+  dernierPassage: string | null;
+  ok: boolean | null;
+  erreur: string | null;
+  dureeMs: number | null;
+  declencheur: string | null;
+}
+
+export interface EtatPoolMysql {
+  taille: number;
+  /** `false` si mysql2 a changé la forme de ses compteurs internes. */
+  mesurable: boolean;
+  ouvertes?: number;
+  libres?: number;
+  occupees?: number;
+  /** Non nul = le pool sature et des requêtes patientent. */
+  enAttente?: number;
+}
+
+export interface ServiceHealth {
+  jobs: FileDeJobs;
+  purges: PurgeDernierPassage[];
+  redis: { configure: boolean; connecte: boolean };
+  mysql: EtatPoolMysql;
+  timestamp: string;
+}
