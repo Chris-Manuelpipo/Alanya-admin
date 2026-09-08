@@ -68,6 +68,33 @@ export interface BackupOverview {
   couverture: number;
 }
 
+/**
+ * Une version de clé de sauvegarde.
+ *
+ * Le secret n'y figure pas, et ne figurera jamais : il est engendré côté
+ * serveur et n'a aucune raison de voyager.
+ */
+export interface BackupKeyVersion {
+  kid: number;
+  createdAt: string;
+  /** Renseigné = sortie du service pour les NOUVELLES sauvegardes. Elle reste
+   *  lisible : les archives qui la portent se restaurent toujours. */
+  retiredAt: string | null;
+  active: boolean;
+  /** Le secret vaut encore son marqueur de déploiement : le serveur refuse de
+   *  servir la clé, donc aucune sauvegarde ne peut être écrite. */
+  placeholder: boolean;
+  comptes: number;
+}
+
+export interface BackupKeyState {
+  versions: BackupKeyVersion[];
+  /** Version qui chiffrera la prochaine sauvegarde. */
+  courante: number | null;
+  /** Faux = plus aucune sauvegarde n'est possible sur tout le parc. */
+  utilisable: boolean;
+}
+
 /** Combien de comptes portent chaque version de clé. Après une rotation, dit
  *  combien de sauvegardes deviendraient illisibles si l'on retirait la version
  *  précédente trop tôt. */

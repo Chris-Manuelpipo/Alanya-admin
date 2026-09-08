@@ -812,6 +812,36 @@ export async function fetchBackupKeyUsage(): Promise<import('@/types').BackupKey
   }));
 }
 
+/* ── Versions de clé ────────────────────────────────────────────────────── */
+
+export async function fetchBackupKeys(): Promise<import('@/types').BackupKeyState> {
+  const res = await api.get('/admin/backup/keys');
+  const d = res.data ?? {};
+  return {
+    versions: (Array.isArray(d.versions) ? d.versions : []).map(
+      (v: Record<string, unknown>) => ({
+        kid: Number(v.kid ?? 0),
+        createdAt: String(v.createdAt ?? ''),
+        retiredAt: (v.retiredAt as string) ?? null,
+        active: Boolean(v.active),
+        placeholder: Boolean(v.placeholder),
+        comptes: Number(v.comptes ?? 0),
+      }),
+    ),
+    courante: d.courante != null ? Number(d.courante) : null,
+    utilisable: Boolean(d.utilisable),
+  };
+}
+
+/** Engendre une version et retire les précédentes. Le secret ne transite pas. */
+export async function rotateBackupKey(): Promise<void> {
+  await api.post('/admin/backup/keys');
+}
+
+export async function retireBackupKey(kid: number): Promise<void> {
+  await api.post(`/admin/backup/keys/${kid}/retire`);
+}
+
 /* ── Clés de sauvegarde ─────────────────────────────────────────────────── */
 
 export interface BackupKeyAccessQuery {

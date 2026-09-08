@@ -1,9 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchBackupKeyAccess,
   fetchBackupKeyAccessSummary,
   fetchBackupOverview,
   fetchBackupKeyUsage,
+  fetchBackupKeys,
+  rotateBackupKey,
+  retireBackupKey,
   type BackupKeyAccessQuery,
 } from '@/lib/mock-data';
 
@@ -52,4 +55,35 @@ export function useBackupKeyUsage() {
     queryFn: fetchBackupKeyUsage,
     staleTime: 5 * 60_000,
   });
+}
+
+/** Versions de clé : lecture. */
+export function useBackupKeys() {
+  return useQuery({
+    queryKey: ['backup-keys'],
+    queryFn: fetchBackupKeys,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Rotation et retrait.
+ *
+ * Les deux invalident aussi `backup-key-usage` : la répartition des comptes par
+ * version change, et l'afficher périmée juste après une rotation serait le pire
+ * moment pour mentir.
+ */
+export function useBackupKeyActions() {
+  const qc = useQueryClient();
+  const rafraichir = () => {
+    qc.invalidateQueries({ queryKey: ['backup-keys'] });
+    qc.invalidateQueries({ queryKey: ['backup-key-usage'] });
+  };
+
+  const rotation = useMutation({ mutationFn: rotateBackupKey, onSuccess: rafraichir });
+  const retrait = useMutation({
+    mutationFn: (kid: number) => retireBackupKey(kid),
+    onSuccess: rafraichir,
+  });
+  return { rotation, retrait };
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { DatabaseBackup, RefreshCw, ShieldAlert } from "lucide-react";
+import { DatabaseBackup, KeyRound, RefreshCw, ShieldAlert, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UsersTableRowsSkeleton } from "@/components/skeletons";
-import { useBackupOverview, useBackupKeyUsage } from "@/hooks/useBackupKeys";
+import {
+  useBackupOverview,
+  useBackupKeys,
+  useBackupKeyActions,
+} from "@/hooks/useBackupKeys";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchUsers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import type { User } from "@/types";
@@ -53,8 +58,11 @@ export default function BackupsPage() {
   const router = useRouter();
   const [filtre, setFiltre] = useState<Filtre>("never");
 
+  const { can } = usePermissions();
   const { data: vue, isFetching, refetch } = useBackupOverview();
-  const { data: cles } = useBackupKeyUsage();
+  const { data: cles } = useBackupKeys();
+  const { rotation, retrait } = useBackupKeyActions();
+  const peutTourner = can("backup.keys");
 
   const { data: liste, isLoading } = useQuery({
     queryKey: ["users", "backup", filtre],
@@ -117,29 +125,129 @@ export default function BackupsPage() {
         </div>
       )}
 
-      {/* Après une rotation de secret, cette liste dit combien de comptes portent
-          encore l'ancienne version — donc combien de sauvegardes deviendraient
-          illisibles si on la retirait trop tôt. */}
-      {cles && cles.length > 0 && (
+      {/* Aucune sauvegarde possible sur tout le parc tant que le secret vaut
+          son marqueur de déploiement. La panne est muette côté application :
+          l'inscrit voit seulement des sauvegardes qui échouent. */}
+      {cles && !cles.utilisable && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            <strong>Aucune version de clé utilisable.</strong> Le secret n&apos;a pas
+            été remplacé au déploiement : aucune sauvegarde ne peut être écrite,
+            pour personne. Créez une version pour débloquer la situation.
+          </span>
+        </div>
+      )}
+
+      {cles && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Versions de clé en service</CardTitle>
-            <CardDescription>
-              Retirer une version rend illisibles les sauvegardes qui la portent.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {cles.map((k) => (
-              <div
-                key={k.kid}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-              >
-                <span className="font-mono text-xs text-zinc-500">clé v{k.kid}</span>
-                <p className="font-semibold tabular-nums">
-                  {k.comptes} compte{k.comptes > 1 ? "s" : ""}
-                </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <KeyRound className="h-4 w-4 text-indigo-600" />
+                  Versions de clé
+                </CardTitle>
+                <CardDescription>
+                  Chaque archive porte en clair le numéro de la version qui l&apos;a
+                  chiffrée. On écrit avec la plus récente, on relit avec celle
+                  qu&apos;il faut — c&apos;est ce qui permet de remplacer un secret
+                  sans rendre illisibles les sauvegardes déjà déposées.
+                </CardDescription>
               </div>
-            ))}
+              {peutTourner && (
+                <Button
+                  onClick={() => {
+                    const actives = cles.versions.filter((v) => v.active);
+                    const portees = actives.reduce((n, v) => n + v.comptes, 0);
+                    if (
+                      !window.confirm(
+                        `Créer une nouvelle version de clé ?\n\n`
+                          + `Les prochaines sauvegardes l'utiliseront. Les ${portees} `
+                          + `compte(s) portant une version antérieure restent `
+                          + `restaurables : les anciennes versions sont retirées du `
+                          + `service, jamais supprimées.`,
+                      )
+                    ) return;
+                    rotation.mutate();
+                  }}
+                  disabled={rotation.isPending}
+                >
+                  {rotation.isPending ? "Création…" : "Nouvelle version"}
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Version</TableHead>
+                    <TableHead>État</TableHead>
+                    <TableHead>Créée le</TableHead>
+                    <TableHead className="text-right">Comptes</TableHead>
+                    {peutTourner && <TableHead className="w-24" />}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cles.versions.map((v) => (
+                    <TableRow key={v.kid}>
+                      <TableCell className="font-mono text-sm">v{v.kid}</TableCell>
+                      <TableCell>
+                        {v.placeholder ? (
+                          <span className="inline-flex rounded-md bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-950/50 dark:text-red-400">
+                            secret non remplacé
+                          </span>
+                        ) : v.kid === cles.courante ? (
+                          <span className="inline-flex rounded-md bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                            en service
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                            retirée · toujours lisible
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums text-zinc-500">
+                        {v.createdAt ? new Date(v.createdAt).toLocaleDateString("fr-FR") : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums text-zinc-500">
+                        {v.comptes}
+                      </TableCell>
+                      {peutTourner && (
+                        <TableCell className="text-right">
+                          {v.active && v.kid === cles.courante && cles.versions.filter((x) => x.active).length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (!window.confirm(
+                                  `Retirer la version v${v.kid} du service ?\n\n`
+                                    + `Elle restera lisible : les ${v.comptes} sauvegarde(s) `
+                                    + `qui la portent se restaureront toujours.`,
+                                )) return;
+                                retrait.mutate(v.kid);
+                              }}
+                              disabled={retrait.isPending}
+                            >
+                              Retirer
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Dit ce qu'on ne fera jamais, pour qu'on cesse de le chercher. */}
+            <p className="mt-4 border-t border-zinc-100 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
+              Une version n&apos;est jamais supprimée. La retirer l&apos;écarte des
+              nouvelles sauvegardes ; la supprimer rendrait définitivement illisibles
+              toutes celles qui la portent — aucune commande ne le permet.
+            </p>
           </CardContent>
         </Card>
       )}
