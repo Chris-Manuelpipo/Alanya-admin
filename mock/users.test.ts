@@ -19,6 +19,12 @@ describe('mockUsersResponse', () => {
     expect(out.items.every((u) => String(u.accountType ?? 0) === '0')).toBe(true);
   });
 
+  it('filtre par rôle (type_compte)', () => {
+    const out = mockUsersResponse({ typeCompte: '1' });
+    expect(out.total).toBeGreaterThan(0);
+    expect(out.items.every((u) => String(u.typeCompte) === '1')).toBe(true);
+  });
+
   it('pagine correctement', () => {
     const all = mockUsersResponse({}).items;
     const page1 = mockUsersResponse({ page: 1, limit: 3 }).items;
@@ -43,5 +49,6 @@ describe('mockUsersResponse', () => {
 
   it('traduit accountType → account_type comme le backend (contrat partagé)', () => {
     expect(buildUsersApiParams({ accountType: '1' }).account_type).toBe('1');
+    expect(buildUsersApiParams({ typeCompte: '2' }).type_compte).toBe('2');
   });
 });

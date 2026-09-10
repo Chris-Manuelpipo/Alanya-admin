@@ -20,6 +20,7 @@ export interface UsersApiParams {
   limit?: number;
   idPays?: string | number;
   accountType?: string | number;
+  typeCompte?: string | number;
   from?: string;
   to?: string;
   sort?: UserSortColumn;
@@ -44,6 +45,10 @@ export function buildUsersApiParams(query: UsersApiParams): Record<string, strin
   // Type de compte : snake_case.
   if (query.accountType != null && query.accountType !== "") {
     params.account_type = query.accountType;
+  }
+  // Rôle : snake_case.
+  if (query.typeCompte != null && query.typeCompte !== "") {
+    params.type_compte = query.typeCompte;
   }
 
   const sort = USER_SORT_COLUMNS.includes(query.sort as UserSortColumn)

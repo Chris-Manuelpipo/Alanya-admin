@@ -70,6 +70,7 @@ export function mockUsersResponse(params: UsersApiParams): UsersResponse {
   if (params.status === 'admin') items = items.filter(u => u.typeCompte >= 1);
   if (params.idPays) items = items.filter(u => String(u.idPays) === params.idPays);
   if (params.accountType) items = items.filter(u => String(u.accountType ?? 0) === params.accountType);
+  if (params.typeCompte) items = items.filter(u => String(u.typeCompte) === params.typeCompte);
   // Plage de date : miroir du backend (bornes sur createdAt, inclusives).
   const fromMs = params.from ? Date.parse(params.from) : NaN;
   const toMs = params.to ? Date.parse(params.to) : NaN;

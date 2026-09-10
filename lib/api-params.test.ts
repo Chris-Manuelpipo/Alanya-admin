@@ -14,12 +14,19 @@ describe('buildUsersApiParams', () => {
     expect(out).not.toHaveProperty('accountType');
   });
 
+  it('renomme typeCompte en type_compte (snake_case)', () => {
+    const out = buildUsersApiParams({ typeCompte: '2' });
+    expect(out.type_compte).toBe('2');
+    expect(out).not.toHaveProperty('typeCompte');
+  });
+
   it('supprime les valeurs vides', () => {
-    const out = buildUsersApiParams({ search: '', status: '', idPays: '', accountType: '' });
+    const out = buildUsersApiParams({ search: '', status: '', idPays: '', accountType: '', typeCompte: '' });
     expect(out).not.toHaveProperty('search');
     expect(out).not.toHaveProperty('status');
     expect(out).not.toHaveProperty('idPays');
     expect(out).not.toHaveProperty('account_type');
+    expect(out).not.toHaveProperty('type_compte');
   });
 
   it('applique les défauts page/limit', () => {

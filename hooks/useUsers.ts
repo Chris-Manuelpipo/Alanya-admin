@@ -23,6 +23,7 @@ interface UsersParams {
   limit?: number;
   idPays?: string;
   accountType?: string;
+  typeCompte?: string;
   from?: string;
   to?: string;
   sort?: UsersApiParams['sort'];

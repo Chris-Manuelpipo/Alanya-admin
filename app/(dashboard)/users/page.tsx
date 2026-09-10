@@ -62,6 +62,13 @@ const statusOptions = [
   { value: "admin", label: "Admins" },
 ];
 
+const roleOptions = [
+  { value: "", label: "Tous" },
+  { value: "0", label: "User" },
+  { value: "1", label: "Admin" },
+  { value: "2", label: "Super Admin" },
+];
+
 export default function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,6 +80,7 @@ export default function UsersPage() {
     status: "",
     idPays: "",
     accountType: "",
+    typeCompte: "",
     period: "",
     from: "",
     to: "",
@@ -80,7 +88,7 @@ export default function UsersPage() {
     order: "desc",
     page: "1",
   });
-  const { q, status, idPays, accountType, period, from: dateFrom, to: dateTo, sort, order } = filters;
+  const { q, status, idPays, accountType, typeCompte, period, from: dateFrom, to: dateTo, sort, order } = filters;
   const page = Math.max(1, Number(filters.page) || 1);
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   const search = useDebouncedValue(searchInput, 300);
@@ -106,6 +114,7 @@ export default function UsersPage() {
     limit: 20,
     idPays,
     accountType,
+    typeCompte,
     sort: sort as UsersApiParams['sort'],
     order: order as UsersApiParams['order'],
     from: effectiveRange?.from,
@@ -128,6 +137,7 @@ export default function UsersPage() {
     status: status || undefined,
     idPays: idPays || undefined,
     account_type: accountType || undefined,
+    type_compte: typeCompte || undefined,
     from: effectiveRange?.from.split("T")[0] || undefined,
     to: effectiveRange?.to.split("T")[0] || undefined,
     sort,
@@ -218,7 +228,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
             <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Filtres</span>
             <button
-              onClick={() => { setFilters({ status: undefined, idPays: undefined, accountType: undefined, period: undefined, from: undefined, to: undefined, sort: undefined, order: undefined, page: undefined }); setSearchInput(""); setSelected(new Set()); }}
+              onClick={() => { setFilters({ status: undefined, idPays: undefined, accountType: undefined, typeCompte: undefined, period: undefined, from: undefined, to: undefined, sort: undefined, order: undefined, page: undefined }); setSearchInput(""); setSelected(new Set()); }}
               className="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
             >
               Réinitialiser
@@ -238,6 +248,12 @@ export default function UsersPage() {
                 {countries.map((c) => (
                   <option key={c.idPays} value={String(c.idPays)}>{c.libelle}</option>
                 ))}
+              </select>
+            </div>
+            <div className="space-y-1.5 min-w-[140px]">
+              <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Rôle</label>
+              <select value={typeCompte} onChange={(e) => { setFilters({ typeCompte: e.target.value, page: undefined }); }} className="flex h-9 w-full items-center rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                {roleOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="space-y-1.5 min-w-[140px]">
@@ -283,7 +299,7 @@ export default function UsersPage() {
       )}
 
       {/* Active Filter Badges */}
-      {(status || idPays || accountType || period || sort !== "created_at" || order !== "desc") && !showFilters && (
+      {(status || idPays || accountType || typeCompte || period || sort !== "created_at" || order !== "desc") && !showFilters && (
         <div className="flex flex-wrap items-center gap-2">
           {status && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
@@ -297,6 +313,14 @@ export default function UsersPage() {
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
               {countries.find((c) => String(c.idPays) === idPays)?.libelle ?? idPays}
               <button onClick={() => { setFilters({ idPays: undefined, page: undefined }); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {typeCompte && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-xs font-medium text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+              Rôle: {roleLabels[Number(typeCompte)] || typeCompte}
+              <button onClick={() => { setFilters({ typeCompte: undefined, page: undefined }); }} className="hover:text-indigo-900 dark:hover:text-indigo-100">
                 <X className="h-3 w-3" />
               </button>
             </span>
