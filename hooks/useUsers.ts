@@ -69,7 +69,9 @@ export function useSetUserSocle() {
       setUserSocle(id, payload),
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
-      qc.invalidateQueries({ queryKey: ['admin-user', id] });
+      // La fiche est chargée sous 'admin-user-detail' (useUserDetail.ts) :
+      // invalider 'admin-user' laissait la fiche ouverte sur l'ancien socle.
+      qc.invalidateQueries({ queryKey: ['admin-user-detail', id] });
       // Une révocation change le compte officiel : le composeur de diffusion
       // et son état vide en dépendent.
       qc.invalidateQueries({ queryKey: ['admin-official-account'] });
