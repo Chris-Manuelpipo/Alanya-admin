@@ -8,6 +8,7 @@ import { useAudit } from "@/hooks/useAudit";
 import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
+import { SubscriptionCard } from "@/components/billing/SubscriptionCard";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -358,6 +359,14 @@ export default function UserDetailPage() {
               </Card>
             );
           })()}
+
+          {can("billing.read") && (
+            <SubscriptionCard
+              userId={id}
+              userName={user.nom || user.pseudo}
+              verified={(user.verificationStatus ?? 0) === 2}
+            />
+          )}
         </div>
 
         {/* Activity + Logins */}
