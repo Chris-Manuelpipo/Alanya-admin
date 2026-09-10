@@ -155,7 +155,7 @@ export default function SantePage() {
           {jobs.derniersEchecs.length === 0 ? (
             <p className="text-sm text-zinc-400 py-4">
               Aucun job en échec. Ces lignes restent en base une fois leurs tentatives
-              épuisées : une liste vide signifie bien que rien n'a définitivement échoué.
+              épuisées : une liste vide signifie bien que rien n&apos;a définitivement échoué.
             </p>
           ) : (
             <div className="overflow-x-auto">
