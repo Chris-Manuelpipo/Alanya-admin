@@ -97,11 +97,12 @@ export interface CreateUserPayload {
   account_type?: number;
 }
 
-/** Socle de compte — les deux axes pilotés depuis la fiche utilisateur. */
+/**
+ * Socle de compte — le genre seul. La vérification ne se saisit plus : elle
+ * suit le dossier d'identité et l'abonnement (le serveur refuse ces champs).
+ */
 export interface SetUserSoclePayload {
   account_type?: number;
-  verification_status?: number;
-  verified_until?: string | null;
 }
 
 export interface ReservedAlanyaPhone {
@@ -1012,6 +1013,72 @@ export interface BillingEntitlements {
   lapsedAt?: string | null;
   /** Compte de BILLING_TEST_USERS : voit la phase payante interrupteur éteint. */
   tester?: boolean;
+}
+
+// ── Vérification d'identité ──
+
+export type VerificationQueue = 'pending' | 'documents' | 'renamed' | 'decided' | 'all';
+
+export type VerificationRequestStatus =
+  | 'pending' | 'document_requested' | 'approved' | 'refused' | 'cancelled' | 'revoked';
+
+/** Ligne de GET /admin/verifications et de l'historique d'un compte. */
+export interface VerificationRow {
+  id: number;
+  alanyaId: number;
+  userName: string | null;
+  pseudo: string | null;
+  avatarUrl: string | null;
+  accountType: number;
+  targetType: number;
+  claimedName: string;
+  nameAtApproval: string | null;
+  /** Approuvé, mais le nom affiché a changé depuis : à réexaminer. */
+  nameChanged: boolean;
+  status: VerificationRequestStatus;
+  reason: string | null;
+  revokeReason: string | null;
+  reviewerName: string | null;
+  documents: number;
+  createdAt: string;
+  decidedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface VerificationDocument {
+  id: number;
+  /** 1 pièce d'identité, 4 selfie avec la pièce. */
+  docType: number;
+  mime: string;
+  size: number;
+  uploadedAt: string;
+  purgeAfter: string | null;
+  purged: boolean;
+  /** Nombre d'ouvertures déjà journalisées. */
+  views: number;
+}
+
+export interface VerificationDetail {
+  request: VerificationRow;
+  user: {
+    alanyaId: number;
+    nom: string;
+    pseudo: string;
+    avatarUrl: string | null;
+    alanyaPhone: string | null;
+    accountType: number;
+    verificationStatus: number;
+    verifiedUntil: string | null;
+    createdAt: string | null;
+  } | null;
+  documents: VerificationDocument[];
+  history: VerificationRow[];
+}
+
+export interface VerificationCount {
+  pending: number;
+  documents: number;
+  renamed: number;
 }
 
 /** GET /admin/users/:id/billing — la carte « Abonnement et coche ». */
