@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { href: "/billing", label: "Réglages" },
   { href: "/billing/plans", label: "Plans" },
+  { href: "/billing/payments", label: "Paiements" },
+  { href: "/billing/subscribers", label: "Abonnés" },
 ];
 
 /**

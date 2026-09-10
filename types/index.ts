@@ -940,3 +940,89 @@ export interface BillingPlanPayload {
   store_product_android?: string | null;
   features?: string[];
 }
+
+export type BillingPaymentStatus = 'created' | 'pending' | 'succeeded' | 'failed' | 'expired' | 'refunded';
+
+/** Ligne de GET /admin/billing/payments. Le numéro arrive déjà masqué. */
+export interface BillingPaymentRow {
+  id: number;
+  alanyaId: number;
+  userName: string | null;
+  plan: string;
+  provider: string;
+  channel: string | null;
+  msisdn: string | null;
+  amount: number;
+  currency: string;
+  status: BillingPaymentStatus;
+  providerRef: string | null;
+  /** INSUFFICIENT_FUNDS, USER_DECLINED, TIMEOUT… */
+  failureCode: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
+}
+
+export type BillingSubscriberFilter = 'active' | 'expiring' | 'expired' | 'all';
+
+export interface BillingSubscriberRow {
+  alanyaId: number;
+  userName: string | null;
+  alanyaPhone: string | null;
+  plan: string | null;
+  currentEnd: string;
+  autoRenew: boolean;
+  renewChannel: string | null;
+  purgeAfter: string | null;
+}
+
+/** 0 paiement, 1 essai, 2 offert, 3 compensation. */
+export type BillingPeriodSource = 0 | 1 | 2 | 3;
+
+export interface BillingPeriodRow {
+  id: number;
+  plan: string;
+  startsAt: string;
+  endsAt: string;
+  source: BillingPeriodSource;
+  paymentId: number | null;
+  reason: string | null;
+  grantedByName: string | null;
+}
+
+export interface BillingEntitlementPeriod {
+  plan: string | null;
+  startsAt: string;
+  endsAt: string;
+  source: number;
+  autoRenew: boolean;
+}
+
+/**
+ * Droits d'un compte, tels que l'application les reçoit — mais convertis en
+ * camelCase, clés de `features` comprises (`verified_badge` → `verifiedBadge`).
+ */
+export interface BillingEntitlements {
+  phase: BillingPhase;
+  graceUntil: string | null;
+  period: BillingEntitlementPeriod | null;
+  upcoming: BillingEntitlementPeriod | null;
+  exempt: boolean;
+  features: Record<string, boolean>;
+  validUntil: string | null;
+  lapsedAt?: string | null;
+  /** Compte de BILLING_TEST_USERS : voit la phase payante interrupteur éteint. */
+  tester?: boolean;
+}
+
+/** GET /admin/users/:id/billing — la carte « Abonnement et coche ». */
+export interface UserBillingResponse {
+  entitlements: BillingEntitlements;
+  subscriber: {
+    currentEnd: string | null;
+    autoRenew: boolean;
+    renewChannel: string | null;
+    purgeAfter: string | null;
+  } | null;
+  periods: BillingPeriodRow[];
+  payments: BillingPaymentRow[];
+}

@@ -10,11 +10,46 @@ import { api } from '@/lib/api';
 import type {
   BillingFeature,
   BillingFeaturePatch,
+  BillingPaymentRow,
+  BillingPaymentStatus,
   BillingPlan,
   BillingPlanPayload,
   BillingSettingsPatch,
   BillingSettingsResponse,
+  BillingSubscriberFilter,
+  BillingSubscriberRow,
+  UserBillingResponse,
 } from '@/types';
+
+/** Paiements, les plus récents d'abord (200 au plus par page, côté serveur). */
+export async function fetchBillingPayments(
+  params: { status?: BillingPaymentStatus; before?: number; limit?: number } = {},
+): Promise<BillingPaymentRow[]> {
+  const res = await api.get('/admin/billing/payments', { params });
+  return (res.data?.payments ?? []) as BillingPaymentRow[];
+}
+
+export async function fetchBillingSubscribers(
+  filter: BillingSubscriberFilter,
+  limit = 200,
+): Promise<BillingSubscriberRow[]> {
+  const res = await api.get('/admin/billing/subscribers', { params: { filter, limit } });
+  return (res.data?.subscribers ?? []) as BillingSubscriberRow[];
+}
+
+export async function fetchUserBilling(userId: number): Promise<UserBillingResponse> {
+  const res = await api.get(`/admin/users/${userId}/billing`);
+  return res.data as UserBillingResponse;
+}
+
+/** Une période offerte (1 à 24 mois), jamais un faux paiement. Motif journalisé. */
+export async function giftSubscription(
+  userId: number,
+  payload: { months: number; reason: string },
+): Promise<UserBillingResponse> {
+  const res = await api.post(`/admin/users/${userId}/billing/gift`, payload);
+  return res.data as UserBillingResponse;
+}
 
 export async function fetchBillingSettings(): Promise<BillingSettingsResponse> {
   const res = await api.get('/admin/billing/settings');
