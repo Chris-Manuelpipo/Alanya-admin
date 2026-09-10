@@ -21,6 +21,7 @@ import {
   HeartPulse,
   ScrollText,
   Flag,
+  CreditCard,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { AdminAlerts } from "@/components/layout/AdminAlerts";
@@ -41,6 +42,9 @@ const navItemsAll = [
   { href: "/analytics", label: "Analytics", icon: BarChart3, permission: "stats.read" },
   { href: "/trips", label: "Trajets", icon: Route, permission: "trips.read" },
   { href: "/users", label: "Utilisateurs", icon: Users, permission: "users.read" },
+  // Lecture au niveau admin ; les réglages et les plans exigent billing.settings
+  // et billing.plans, vérifiés par la page et par le serveur.
+  { href: "/billing", label: "Abonnement", icon: CreditCard, permission: "billing.read" },
   { href: "/groups", label: "Groupes", icon: UsersRound, permission: "groups.read" },
   { href: "/meetings", label: "Réunions", icon: Video, permission: "meetings.read" },
   { href: "/medias", label: "Médias", icon: ImageIcon, permission: "media.read" },

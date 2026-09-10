@@ -851,3 +851,92 @@ export interface ServiceHealth {
   mysql: EtatPoolMysql;
   timestamp: string;
 }
+
+// ── Abonnement (Alanya Plus) ──
+//
+// Réponses de /admin/billing/*, déjà converties en camelCase par lib/api.ts.
+// Les clés de langue des objets i18n (fr, en, zh) n'ont pas de `_` : elles
+// traversent la conversion intactes.
+
+export type BillingPhase = 'free' | 'grace' | 'paid';
+
+export interface BillingSettingsRow {
+  id: number;
+  paidEnabled: 0 | 1;
+  activatedAt: string | null;
+  graceUntil: string | null;
+  deactivatedAt: string | null;
+  defaultGraceDays: number;
+  trialDays: number;
+  retentionDays: number;
+  updatedBy: number | null;
+  updatedAt: string | null;
+}
+
+export interface BillingSettingsResponse {
+  settings: BillingSettingsRow;
+  phase: BillingPhase;
+  /** Fournisseur de paiement actif (variable PAYMENT_PROVIDER du serveur). */
+  provider: string;
+  /** Code qui empêche l'activation (ex. BILLING_PROVIDER_SIMULATED), ou null. */
+  activationBlockedBy: string | null;
+  /** Ce que l'activation déclencherait aujourd'hui. */
+  preview: { accounts: number; verifiedBadges: number };
+}
+
+/** Corps de PUT /admin/billing/settings — snake_case, comme le lit le serveur. */
+export interface BillingSettingsPatch {
+  default_grace_days?: number;
+  trial_days?: number;
+  retention_days?: number;
+}
+
+export interface BillingFeature {
+  code: string;
+  nameI18n: Translations;
+  descriptionI18n: Translations | null;
+  isPaid: number;
+  /** Livrée par le code : ne se règle pas depuis le panneau. */
+  isAvailable: number;
+  sortOrder: number;
+}
+
+export interface BillingFeaturePatch {
+  is_paid?: boolean;
+  name_i18n?: Translations;
+  description_i18n?: Translations | null;
+  sort_order?: number;
+}
+
+export interface BillingPlan {
+  id: number;
+  code: string;
+  nameI18n: Translations;
+  durationMonths: number;
+  priceAmount: number;
+  currency: string;
+  reminderDays: number;
+  isActive: number;
+  isFeatured: number;
+  sortOrder: number;
+  storeProductIos: string | null;
+  storeProductAndroid: string | null;
+  features: string[];
+  updatedAt?: string;
+}
+
+/** Corps de POST / PUT /admin/billing/plans — snake_case. */
+export interface BillingPlanPayload {
+  code: string;
+  name_i18n: Translations;
+  duration_months: number;
+  price_amount: number;
+  currency?: string;
+  reminder_days: number;
+  is_active?: boolean;
+  is_featured?: boolean;
+  sort_order?: number;
+  store_product_ios?: string | null;
+  store_product_android?: string | null;
+  features?: string[];
+}
