@@ -55,7 +55,6 @@ export default function UserDetailPage() {
   // `null` = « non touché » : la valeur affichée reste celle du serveur tant que
   // l'administrateur n'a rien changé, sans effet de bord de synchronisation.
   const [socleType, setSocleType] = useState<number | null>(null);
-  const [socleVerif, setSocleVerif] = useState<number | null>(null);
 
   function refreshDetail() {
     queryClient.invalidateQueries({ queryKey: ["admin-user-detail"] });
@@ -263,18 +262,16 @@ export default function UserDetailPage() {
 
           {can("users.socle") && (() => {
             const currentType = socleType ?? user.accountType ?? 0;
-            const currentVerif = socleVerif ?? user.verificationStatus ?? 0;
             const isAdminAccount = (user.typeCompte ?? 0) >= 1;
-            const dirty = socleType !== null || socleVerif !== null;
+            const dirty = socleType !== null;
 
             async function saveSocle() {
               try {
                 await socleMutation.mutateAsync({
                   id: user!.alanyaID,
-                  payload: { account_type: currentType, verification_status: currentVerif },
+                  payload: { account_type: currentType },
                 });
                 setSocleType(null);
-                setSocleVerif(null);
                 refreshDetail();
                 addToast({ title: "Socle mis à jour" });
               } catch (err: unknown) {
@@ -319,20 +316,22 @@ export default function UserDetailPage() {
                     )}
                   </div>
 
+                  {/* La vérification ne se saisit plus : elle suit le dossier
+                      d'identité et l'abonnement. Lecture seule, avec le chemin
+                      vers ce qui la décide. */}
                   <div className="space-y-1">
-                    <label htmlFor="socle-verif" className="text-xs font-medium text-zinc-500">
-                      État de vérification
-                    </label>
-                    <select
-                      id="socle-verif"
-                      className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-                      value={currentVerif}
-                      onChange={(e) => setSocleVerif(Number(e.target.value))}
-                    >
-                      {Object.entries(verificationLabels).map(([v, label]) => (
-                        <option key={v} value={v}>{label}</option>
-                      ))}
-                    </select>
+                    <p className="text-xs font-medium text-zinc-500">État de vérification</p>
+                    <p className="text-sm">
+                      {verificationLabels[user.verificationStatus ?? 0]}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Suit le dossier d&apos;identité et l&apos;abonnement.{" "}
+                      {can("verifications.read") && (
+                        <a href="/admin/verifications" className="text-indigo-600 hover:underline">
+                          Voir les dossiers
+                        </a>
+                      )}
+                    </p>
                   </div>
 
                   {isAdminAccount && (
