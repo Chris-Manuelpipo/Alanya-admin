@@ -45,10 +45,9 @@ import { ExportDialog } from "@/components/export/ExportDialog";
 import type { AdminExportParams } from "@/lib/admin-export";
 import type { UsersApiParams } from "@/lib/api-params";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { ROLE_LABELS as roleLabels, ACCOUNT_TYPE_LABELS as accountTypeLabels } from "@/lib/account-labels";
 
-const roleLabels: Record<number, string> = { 0: "User", 1: "Admin", 2: "Super Admin" };
 const roleColors: Record<number, string> = { 0: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300", 1: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300", 2: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" };
-const accountTypeLabels: Record<number, string> = { 0: "Personnel", 1: "Business", 2: "Officiel" };
 const accountTypeColors: Record<number, string> = {
   0: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   1: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",

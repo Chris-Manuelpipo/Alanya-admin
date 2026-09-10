@@ -23,12 +23,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
 import { ArrowLeft, MessageSquare, Phone, Users, Smile, Calendar, Globe, Smartphone, Monitor, Clock, Shield, Mail, Ban as BanIcon, CheckCircle2, Shield as ShieldUp, ShieldOff, Trash2, Loader2, X, ZoomIn } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-
-const roleLabels: Record<number, string> = { 0: "Utilisateur", 1: "Admin", 2: "Super Admin" };
-const accountTypeLabels: Record<number, string> = { 0: "Personnel", 1: "Business", 2: "Officiel" };
-const verificationLabels: Record<number, string> = {
-  0: "Aucune", 1: "En attente", 2: "Vérifié", 3: "Refusé", 4: "Révoqué", 5: "Expiré",
-};
+import {
+  ROLE_LABELS as roleLabels,
+  ACCOUNT_TYPE_LABELS as accountTypeLabels,
+  VERIFICATION_LABELS as verificationLabels,
+} from "@/lib/account-labels";
 
 export default function UserDetailPage() {
   const params = useParams();
