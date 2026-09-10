@@ -55,7 +55,8 @@ function forceLogout() {
   localStorage.removeItem('admin_token');
   localStorage.removeItem('admin_refresh');
   localStorage.removeItem('admin_user');
-  window.location.href = '/login';
+  // basePath /admin : un hard redirect doit inclure le préfixe.
+  window.location.href = '/admin/login';
 }
 
 api.interceptors.response.use(
