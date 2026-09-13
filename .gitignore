@@ -49,3 +49,4 @@ next-env.d.ts
 *.out
 *.synctex.gz
 *.toc
+.env.production
