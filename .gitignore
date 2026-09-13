@@ -50,3 +50,5 @@ next-env.d.ts
 *.synctex.gz
 *.toc
 .env.production
+.claude-profile
+PROMPT-CLAUDE.md
