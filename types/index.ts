@@ -1083,6 +1083,16 @@ export interface VerificationCount {
   renamed: number;
 }
 
+// ── Sécurité ──
+//
+// GET / PUT /admin/security-settings. Une seule bascule pour l'instant : la
+// connexion par mot de passe réservée aux téléphones déjà enrôlés.
+
+export interface SecuritySettings {
+  deviceBindingEnabled: boolean;
+  updatedAt: string;
+}
+
 /** GET /admin/users/:id/billing — la carte « Abonnement et coche ». */
 export interface UserBillingResponse {
   entitlements: BillingEntitlements;
