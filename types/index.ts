@@ -985,6 +985,8 @@ export interface BillingPeriodRow {
   startsAt: string;
   endsAt: string;
   source: BillingPeriodSource;
+  /** false = période offerte sans la coche. */
+  grantsBadge?: boolean;
   paymentId: number | null;
   reason: string | null;
   grantedByName: string | null;
@@ -1089,6 +1091,11 @@ export interface UserBillingResponse {
     autoRenew: boolean;
     renewChannel: string | null;
     purgeAfter: string | null;
+  } | null;
+  badgeRevocation: {
+    revokedAt: string;
+    reason: string;
+    revokedByName: string | null;
   } | null;
   periods: BillingPeriodRow[];
   payments: BillingPaymentRow[];

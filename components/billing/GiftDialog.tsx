@@ -41,6 +41,7 @@ export function GiftDialog({
   const gift = useGiftSubscription();
   const [months, setMonths] = useState(1);
   const [reason, setReason] = useState("");
+  const [grantsBadge, setGrantsBadge] = useState(true);
   const [missingReason, setMissingReason] = useState(false);
 
   const start = nextPeriodStart(new Date(), currentEnd, graceUntil);
@@ -50,6 +51,7 @@ export function GiftDialog({
     if (!next) {
       setMonths(1);
       setReason("");
+      setGrantsBadge(true);
       setMissingReason(false);
     }
     onOpenChange(next);
@@ -62,12 +64,12 @@ export function GiftDialog({
       return;
     }
     gift.mutate(
-      { userId, months, reason: motif },
+      { userId, months, reason: motif, grantsBadge },
       {
         onSuccess: () => {
           addToast({
             title: "Abonnement offert",
-            description: `${months} mois pour ${userName}, jusqu'au ${fmtDay(end)}.`,
+            description: `${months} mois pour ${userName}, jusqu'au ${fmtDay(end)}${grantsBadge ? " · avec la coche" : ""}.`,
             variant: "success",
           });
           close(false);
@@ -116,6 +118,22 @@ export function GiftDialog({
             {start.getTime() > Date.now() + 60_000 && " — à la suite de ce qui court déjà"}
           </p>
         </fieldset>
+
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+            checked={grantsBadge}
+            onChange={(e) => setGrantsBadge(e.target.checked)}
+          />
+          <span className="min-w-0 text-sm">
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">Avec la coche</span>
+            <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
+              Affiche « Abonné Alanya Plus » à côté du nom. Décochez pour offrir
+              les fonctionnalités sans la distinction visuelle.
+            </span>
+          </span>
+        </label>
 
         <div className="space-y-1.5">
           <label htmlFor="gift-reason" className="text-xs font-medium text-zinc-500">

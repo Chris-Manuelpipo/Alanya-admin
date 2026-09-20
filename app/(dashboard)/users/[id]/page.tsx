@@ -316,21 +316,15 @@ export default function UserDetailPage() {
                     )}
                   </div>
 
-                  {/* La vérification ne se saisit plus : elle suit le dossier
-                      d'identité et l'abonnement. Lecture seule, avec le chemin
-                      vers ce qui la décide. */}
+                  {/* La coche suit l'abonnement (comptes personnels) ; révocation
+                      depuis la carte Abonnement ci-contre. */}
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-zinc-500">État de vérification</p>
+                    <p className="text-xs font-medium text-zinc-500">Coche</p>
                     <p className="text-sm">
                       {verificationLabels[user.verificationStatus ?? 0]}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Suit le dossier d&apos;identité et l&apos;abonnement.{" "}
-                      {can("verifications.read") && (
-                        <a href="/admin/verifications" className="text-indigo-600 hover:underline">
-                          Voir les dossiers
-                        </a>
-                      )}
+                      Suit l&apos;abonnement Alanya Plus. Gérer depuis la carte Abonnement.
                     </p>
                   </div>
 

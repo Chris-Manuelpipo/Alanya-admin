@@ -11,6 +11,8 @@ import {
   fetchBillingSubscribers,
   fetchUserBilling,
   giftSubscription,
+  restoreBadge,
+  revokeBadge,
   updateBillingFeature,
   updateBillingPlan,
   updateBillingSettings,
@@ -53,17 +55,37 @@ export function useUserBilling(userId: number, enabled = true) {
 }
 
 /** La réponse porte la carte à jour : posée en cache, sans relecture. */
-export function useGiftSubscription() {
+function useUserBillingMutation<V>(
+  fn: (v: V) => Promise<Awaited<ReturnType<typeof fetchUserBilling>>>,
+) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, months, reason }: { userId: number; months: number; reason: string }) =>
-      giftSubscription(userId, { months, reason }),
-    onSuccess: (data, { userId }) => {
+    mutationFn: fn,
+    onSuccess: (data, vars) => {
+      const userId = (vars as { userId: number }).userId;
       qc.setQueryData(userBillingKey(userId), data);
       qc.invalidateQueries({ queryKey: SUBSCRIBERS });
       qc.invalidateQueries({ queryKey: ["admin-audit"] });
+      qc.invalidateQueries({ queryKey: ["admin-user-detail"] });
     },
   });
+}
+
+export function useGiftSubscription() {
+  return useUserBillingMutation(({
+    userId, months, reason, grantsBadge,
+  }: { userId: number; months: number; reason: string; grantsBadge?: boolean }) =>
+    giftSubscription(userId, { months, reason, grantsBadge }));
+}
+
+export function useRevokeBadge() {
+  return useUserBillingMutation(({ userId, reason }: { userId: number; reason: string }) =>
+    revokeBadge(userId, reason));
+}
+
+export function useRestoreBadge() {
+  return useUserBillingMutation(({ userId, reason }: { userId: number; reason: string }) =>
+    restoreBadge(userId, reason));
 }
 
 export function useBillingSettings() {

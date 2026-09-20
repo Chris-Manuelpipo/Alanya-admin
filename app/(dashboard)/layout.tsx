@@ -22,14 +22,12 @@ import {
   ScrollText,
   Flag,
   CreditCard,
-  BadgeCheck,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { AdminAlerts } from "@/components/layout/AdminAlerts";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, adminLogout, getAdminUser } from "@/lib/auth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useVerificationCount } from "@/hooks/useVerification";
 import { useEffect, useState } from "react";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
@@ -47,9 +45,7 @@ const navItemsAll = [
   // Lecture au niveau admin ; les réglages et les plans exigent billing.settings
   // et billing.plans, vérifiés par la page et par le serveur.
   { href: "/billing", label: "Abonnement", icon: CreditCard, permission: "billing.read" },
-  // Tout administrateur instruit les dossiers d'identité (volet 5) ; le
-  // compteur dit combien attendent une décision.
-  { href: "/verifications", label: "Vérifications", icon: BadgeCheck, permission: "verifications.read" },
+  // Vérifications : pages conservées hors menu (comptes business plus tard).
   { href: "/groups", label: "Groupes", icon: UsersRound, permission: "groups.read" },
   { href: "/meetings", label: "Réunions", icon: Video, permission: "meetings.read" },
   { href: "/medias", label: "Médias", icon: ImageIcon, permission: "media.read" },
@@ -78,8 +74,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { can } = usePermissions();
   // Avant tout retour anticipé : les hooks s'appellent dans le même ordre à
   // chaque rendu.
-  const { data: verifCount } = useVerificationCount(can("verifications.read"));
-  const toReview = (verifCount?.pending ?? 0) + (verifCount?.renamed ?? 0);
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -143,19 +137,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 <span className="relative shrink-0">
                   <item.icon className="h-5 w-5" />
-                  {collapsed && item.href === "/verifications" && toReview > 0 && (
-                    <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-indigo-600" aria-hidden />
-                  )}
                 </span>
                 {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
-                {!collapsed && item.href === "/verifications" && toReview > 0 && (
-                  <span
-                    className="rounded-full bg-indigo-600 px-1.5 py-px text-[11px] font-semibold tabular-nums text-white"
-                    aria-label={`${toReview} dossier(s) à instruire`}
-                  >
-                    {toReview}
-                  </span>
-                )}
               </button>
             );
           })}

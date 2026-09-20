@@ -5,19 +5,24 @@
  *
  * Dit où en est le compte (actif, à venir, terminé, exempté), si la coche
  * s'affiche et pourquoi — c'est la question qu'on pose au support —, puis les
- * périodes et paiements récents. Offrir des mois se fait d'ici, motif
- * obligatoire.
+ * périodes et paiements récents. Offrir des mois et révoquer / restaurer la
+ * coche se font d'ici, motif obligatoire.
  */
 
 import { useState } from "react";
-import { Gift } from "lucide-react";
+import { Gift, ShieldOff, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { AccountBadgeIcon } from "@/components/account-badge";
+import { useToast } from "@/components/ui/toast";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useBillingPlans, useUserBilling } from "@/hooks/useBilling";
+import {
+  useBillingPlans, useRestoreBadge, useRevokeBadge, useUserBilling,
+} from "@/hooks/useBilling";
 import {
   PAYMENT_STATUS_CLASS, PAYMENT_STATUS_LABEL, PERIOD_SOURCE_LABEL, fmtDay, planLabel,
 } from "@/lib/billing-labels";
@@ -35,6 +40,10 @@ const TONE = {
 
 const shortDay = (d: string) =>
   new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+const serverError = (e: unknown) =>
+  (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+  || (e instanceof Error ? e.message : undefined);
 
 function describe(b: UserBillingResponse, plans?: BillingPlan[]) {
   const e = b.entitlements;
@@ -68,18 +77,31 @@ function describe(b: UserBillingResponse, plans?: BillingPlan[]) {
   };
 }
 
-/** La coche = identité vérifiée ET droit `verified_badge` (abonnement en phase payante). */
+/** La coche suit l'abonnement (comptes personnels), sauf révocation admin. */
 function coche(b: UserBillingResponse, verified: boolean) {
-  if (!verified) return { shown: false, why: "Identité non vérifiée." };
-  if (b.entitlements.features.verifiedBadge === false) {
-    return { shown: false, why: "Identité vérifiée, mais l'abonnement manque : la coche tombe en phase payante." };
+  if (b.badgeRevocation) {
+    return {
+      shown: false,
+      why: `Révoquée le ${fmtDay(b.badgeRevocation.revokedAt)}`
+        + (b.badgeRevocation.revokedByName ? ` par ${b.badgeRevocation.revokedByName}` : "")
+        + ` — ${b.badgeRevocation.reason}`,
+    };
   }
-  return {
-    shown: true,
-    why: b.entitlements.phase === "free"
-      ? "Identité vérifiée — suffisant pendant la phase gratuite."
-      : "Identité vérifiée et abonnement actif.",
-  };
+  if (verified) {
+    return {
+      shown: true,
+      why: b.entitlements.period || b.entitlements.upcoming
+        ? "Abonné Alanya Plus — coche affichée."
+        : "Coche posée sur le compte.",
+    };
+  }
+  if (b.entitlements.phase === "free") {
+    return { shown: false, why: "Interrupteur éteint : aucune coche tant que le payant n'est pas activé." };
+  }
+  if (!b.entitlements.period && !b.entitlements.upcoming) {
+    return { shown: false, why: "Pas d'abonnement actif : la coche ne s'affiche pas." };
+  }
+  return { shown: false, why: "Abonnement sans coche (période offerte sans distinction, ou statut en attente)." };
 }
 
 export function SubscriptionCard({
@@ -92,12 +114,55 @@ export function SubscriptionCard({
   verified: boolean;
 }) {
   const { can } = usePermissions();
+  const { addToast } = useToast();
   const { data, isLoading, isError, refetch } = useUserBilling(userId);
   const { data: plans } = useBillingPlans();
+  const revoke = useRevokeBadge();
+  const restore = useRestoreBadge();
   const [giftOpen, setGiftOpen] = useState(false);
+  const [badgeAction, setBadgeAction] = useState<"revoke" | "restore" | null>(null);
+  const [badgeReason, setBadgeReason] = useState("");
+  const [missingReason, setMissingReason] = useState(false);
 
   const state = data ? describe(data, plans) : null;
   const badge = data ? coche(data, verified) : null;
+  const canDecide = can("verifications.decide");
+  const pending = revoke.isPending || restore.isPending;
+
+  const closeBadgeDialog = (open: boolean) => {
+    if (!open) {
+      setBadgeAction(null);
+      setBadgeReason("");
+      setMissingReason(false);
+    }
+  };
+
+  const submitBadge = () => {
+    const motif = badgeReason.trim();
+    if (!motif) {
+      setMissingReason(true);
+      return;
+    }
+    const mutation = badgeAction === "revoke" ? revoke : restore;
+    mutation.mutate(
+      { userId, reason: motif },
+      {
+        onSuccess: () => {
+          addToast({
+            title: badgeAction === "revoke" ? "Coche révoquée" : "Coche restaurée",
+            variant: "success",
+          });
+          closeBadgeDialog(false);
+        },
+        onError: (e) =>
+          addToast({
+            title: badgeAction === "revoke" ? "Révocation refusée" : "Restauration refusée",
+            description: serverError(e),
+            variant: "error",
+          }),
+      },
+    );
+  };
 
   return (
     <Card className="border-0 shadow-sm">
@@ -156,7 +221,10 @@ export function SubscriptionCard({
                         <span className="text-xs tabular-nums">
                           {shortDay(p.startsAt)} → {shortDay(p.endsAt)}
                         </span>
-                        <span className="shrink-0 text-xs text-zinc-500">{PERIOD_SOURCE_LABEL[p.source] ?? "—"}</span>
+                        <span className="shrink-0 text-xs text-zinc-500">
+                          {PERIOD_SOURCE_LABEL[p.source] ?? "—"}
+                          {p.grantsBadge === false ? " · sans coche" : ""}
+                        </span>
                       </div>
                       {p.source !== 0 && (p.grantedByName || p.reason) && (
                         <p className="truncate text-xs text-zinc-400" title={p.reason ?? undefined}>
@@ -187,12 +255,31 @@ export function SubscriptionCard({
               </section>
             )}
 
-            {can("billing.gift") && !data.entitlements.exempt && (
-              <Button variant="outline" className="w-full" onClick={() => setGiftOpen(true)}>
-                <Gift className="mr-2 h-4 w-4" />
-                Offrir des mois
-              </Button>
-            )}
+            <div className="flex flex-col gap-2">
+              {can("billing.gift") && !data.entitlements.exempt && (
+                <Button variant="outline" className="w-full" onClick={() => setGiftOpen(true)}>
+                  <Gift className="mr-2 h-4 w-4" />
+                  Offrir des mois
+                </Button>
+              )}
+              {canDecide && !data.entitlements.exempt && (
+                data.badgeRevocation ? (
+                  <Button variant="outline" className="w-full" onClick={() => setBadgeAction("restore")}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    Restaurer la coche
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full text-red-600 hover:text-red-700 dark:text-red-400"
+                    onClick={() => setBadgeAction("revoke")}
+                  >
+                    <ShieldOff className="mr-2 h-4 w-4" />
+                    Révoquer la coche
+                  </Button>
+                )
+              )}
+            </div>
           </>
         )}
       </CardContent>
@@ -207,6 +294,42 @@ export function SubscriptionCard({
           graceUntil={data.entitlements.graceUntil}
         />
       )}
+
+      <ConfirmDialog
+        open={badgeAction != null}
+        onOpenChange={closeBadgeDialog}
+        title={badgeAction === "revoke" ? "Révoquer la coche" : "Restaurer la coche"}
+        description={
+          badgeAction === "revoke"
+            ? `${userName} perd la distinction « Abonné Alanya Plus ». Les fonctionnalités payées restent. L'utilisateur est notifié.`
+            : `${userName} retrouve la coche si son abonnement la porte encore.`
+        }
+        confirmLabel={badgeAction === "revoke" ? "Révoquer" : "Restaurer"}
+        pending={pending}
+        onConfirm={submitBadge}
+      >
+        <div className="space-y-1.5">
+          <label htmlFor="badge-reason" className="text-xs font-medium text-zinc-500">
+            Motif <span className="font-normal">(journalisé)</span>
+          </label>
+          <Textarea
+            id="badge-reason"
+            rows={3}
+            value={badgeReason}
+            onChange={(e) => {
+              setBadgeReason(e.target.value);
+              if (missingReason) setMissingReason(false);
+            }}
+            placeholder="Ex. : usurpation de nom signalée"
+            aria-invalid={missingReason}
+          />
+          {missingReason && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Indiquez le motif : il accompagne le geste dans le journal.
+            </p>
+          )}
+        </div>
+      </ConfirmDialog>
     </Card>
   );
 }

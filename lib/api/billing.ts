@@ -45,9 +45,27 @@ export async function fetchUserBilling(userId: number): Promise<UserBillingRespo
 /** Une période offerte (1 à 24 mois), jamais un faux paiement. Motif journalisé. */
 export async function giftSubscription(
   userId: number,
-  payload: { months: number; reason: string },
+  payload: { months: number; reason: string; grantsBadge?: boolean },
 ): Promise<UserBillingResponse> {
   const res = await api.post(`/admin/users/${userId}/billing/gift`, payload);
+  return res.data as UserBillingResponse;
+}
+
+/** Retire la coche (fonctionnalités conservées). Motif journalisé et notifié. */
+export async function revokeBadge(
+  userId: number,
+  reason: string,
+): Promise<UserBillingResponse> {
+  const res = await api.post(`/admin/users/${userId}/badge/revoke`, { reason });
+  return res.data as UserBillingResponse;
+}
+
+/** Lève une révocation : la coche revient si l'abonnement la porte encore. */
+export async function restoreBadge(
+  userId: number,
+  reason: string,
+): Promise<UserBillingResponse> {
+  const res = await api.post(`/admin/users/${userId}/badge/restore`, { reason });
   return res.data as UserBillingResponse;
 }
 
