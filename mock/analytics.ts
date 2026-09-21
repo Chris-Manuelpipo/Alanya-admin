@@ -100,6 +100,12 @@ export const mockAnalytics: Analytics = {
     { os: 'iOS', count: 4210 },
     { os: 'Inconnu', count: 420 },
   ],
+  // Volontairement plus bas que `devices` : un appareil se connecte une fois et
+  // renouvelle ensuite son jeton, donc le parc actif ne suit pas le flux.
+  activeDevices: [
+    { os: 'Android', count: 5140 },
+    { os: 'iOS', count: 2880 },
+  ],
   conversations: {
     total: 18420,
     groups: 2310,

@@ -147,6 +147,10 @@ export default function AnalyticsPage() {
     () => (data ? data.devices.map((d) => ({ name: d.os, value: d.count })) : []),
     [data]
   );
+  const parcPie = useMemo(
+    () => (data ? data.activeDevices.map((d) => ({ name: d.os, value: d.count })) : []),
+    [data]
+  );
   const meetingPie = useMemo(
     () =>
       data
@@ -274,15 +278,24 @@ export default function AnalyticsPage() {
           </div>
 
           <SectionTitle>Utilisateurs &amp; conversations</SectionTitle>
+          {/*
+            Deux camemberts d'appareils, et ce n'est pas un doublon :
+            « Connexions » compte des authentifications sur la période — un
+            utilisateur fidèle n'y apparaît qu'une fois, puisque l'application
+            renouvelle son jeton au lieu de se reconnecter. « Parc » compte les
+            appareils qui se sont manifestés. C'est le second qui dit combien de
+            monde utilise Alanya.
+          */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <PieChart data={rolePie} title="Répartition par rôle" />
-            <PieChart data={devicePie} title="Systèmes (connexions)" />
-            <div className="grid grid-cols-2 gap-4 content-start">
-              <StatCard title="Conversations" value={data.conversations.total} icon={MessageSquare} color="#3b82f6" subtitle="total" />
-              <StatCard title="Groupes" value={data.conversations.groups} icon={UsersRound} color="#f59e0b" subtitle="actifs" />
-              <StatCard title="Privées (1-1)" value={data.conversations.oneToOne} icon={Users} color="#6366f1" subtitle="total" />
-              <StatCard title="Taille moy. groupe" value={data.conversations.avgGroupSize} icon={UsersRound} color="#22c55e" subtitle="membres" />
-            </div>
+            <PieChart data={devicePie} title="Connexions par système" />
+            <PieChart data={parcPie} title="Parc d'appareils actifs" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard title="Conversations" value={data.conversations.total} icon={MessageSquare} color="#3b82f6" subtitle="total" />
+            <StatCard title="Groupes" value={data.conversations.groups} icon={UsersRound} color="#f59e0b" subtitle="actifs" />
+            <StatCard title="Privées (1-1)" value={data.conversations.oneToOne} icon={Users} color="#6366f1" subtitle="total" />
+            <StatCard title="Taille moy. groupe" value={data.conversations.avgGroupSize} icon={UsersRound} color="#22c55e" subtitle="membres" />
           </div>
         </>
       )}

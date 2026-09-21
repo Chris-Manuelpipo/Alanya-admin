@@ -238,7 +238,10 @@ export interface Analytics {
   stories: StoryStats;
   meetings: MeetingStats;
   users: UserAnalytics;
+  /** Authentifications de la période, refus exclus — un flux, pas un parc. */
   devices: { os: string; count: number }[];
+  /** Appareils enrôlés et non révoqués qui se sont manifestés sur la période. */
+  activeDevices: { os: string; count: number }[];
   conversations: ConversationStats;
   heatmap: { dow: number; hour: number; count: number }[];
   comparison: { messages: number; calls: number; statuses: number; registrations: number };
