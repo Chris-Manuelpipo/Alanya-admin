@@ -384,7 +384,7 @@ export default function UserDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {logins?.map((login) => (
-                    <div key={login.idAccess} className="flex items-center gap-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900">
+                    <div key={login.idLogin} className="flex items-center gap-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950 shrink-0">
                         {isMobile(login.os_system, login.device)
                           ? <Smartphone className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -393,7 +393,16 @@ export default function UserDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{login.device}</p>
-                        <p className="text-xs text-zinc-500">{login.os_system}</p>
+                        <p className="text-xs text-zinc-500">
+                          {login.os_system}
+                          {login.origine && login.origine !== "login" && (
+                            <span className={login.origine === "refus"
+                              ? "ml-2 text-red-600 dark:text-red-400 font-medium"
+                              : "ml-2 text-zinc-400"}>
+                              {ORIGINE_LABELS[login.origine]}
+                            </span>
+                          )}
+                        </p>
                       </div>
                       <div className="text-right text-xs text-zinc-500 shrink-0">
                         <p>{new Date(login.dateLogin).toLocaleDateString("fr")}</p>
@@ -582,6 +591,15 @@ function Row({ icon: Icon, label }: { icon: React.ComponentType<React.SVGProps<S
     </div>
   );
 }
+
+/** Ce qui a produit la ligne de journal. `login` reste muet : c'est le cas
+    ordinaire, l'afficher partout noierait les quatre autres. */
+const ORIGINE_LABELS: Record<string, string> = {
+  inscription: "inscription",
+  qr: "par QR",
+  recovery: "après réinitialisation",
+  refus: "tentative refusée",
+};
 
 function StatBox({ icon: Icon, label, value, color }: { icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; label: string; value: number; color: string }) {
   return (

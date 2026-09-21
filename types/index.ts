@@ -60,12 +60,15 @@ export interface UserActivity {
   statusesPublished: number;
 }
 
+/** GET /api/admin/users/:id/logins — les colonnes de `userAccess`, brutes. */
 export interface LoginEntry {
-  idAccess: number;
+  idLogin: number;
   dateLogin: string;
   os_system: string;
   device: string;
   ipAdress: string;
+  /** Migration 085 ; absent des réponses d'un serveur plus ancien. */
+  origine?: "login" | "inscription" | "qr" | "recovery" | "refus";
 }
 
 export interface UsersResponse {

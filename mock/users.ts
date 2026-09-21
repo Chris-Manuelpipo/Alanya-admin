@@ -55,8 +55,8 @@ export const mockUserActivity: UserActivity = {
 };
 
 export const mockLoginHistory: LoginEntry[] = [
-  { idAccess: 1, dateLogin: new Date().toISOString(), os_system: 'Android', device: 'Samsung SM-A715F', ipAdress: '192.168.1.1' },
-  { idAccess: 2, dateLogin: '2026-05-20T10:00:00Z', os_system: 'iOS', device: 'iPhone 14', ipAdress: '10.0.0.5' },
+  { idLogin: 1, dateLogin: new Date().toISOString(), os_system: 'Android', device: 'Samsung SM-A715F', ipAdress: '192.168.1.1', origine: 'login' },
+  { idLogin: 2, dateLogin: '2026-05-20T10:00:00Z', os_system: 'iOS', device: 'iPhone 14', ipAdress: '10.0.0.5', origine: 'qr' },
 ];
 
 export function mockUsersResponse(params: UsersApiParams): UsersResponse {
