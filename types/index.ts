@@ -178,6 +178,9 @@ export interface CallStats {
   answered: number;
   missed: number;
   rejected: number;
+  /** Renvoyés au répondeur : le téléphone n'a jamais sonné. Quatrième seau
+   *  disjoint des trois autres, et exclu du dénominateur de `successRate`. */
+  voicemail: number;
   avgDuration: number;
   totalDuration: number;
   successRate: number;

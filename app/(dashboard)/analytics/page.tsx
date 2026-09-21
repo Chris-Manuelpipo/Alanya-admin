@@ -28,6 +28,7 @@ import {
   RefreshCw,
   Radio,
   Download,
+  Voicemail,
 } from "lucide-react";
 
 function formatDuration(s: number): string {
@@ -120,6 +121,7 @@ export default function AnalyticsPage() {
             { name: "Répondus", value: data.calls.answered },
             { name: "Manqués", value: data.calls.missed },
             { name: "Rejetés", value: data.calls.rejected },
+            { name: "Répondeur", value: data.calls.voicemail },
           ]
         : [],
     [data]
@@ -232,6 +234,7 @@ export default function AnalyticsPage() {
             <StatCard title="Taux de réussite" value={`${data.calls.successRate}%`} icon={CheckCircle2} color="#22c55e" subtitle={`${data.calls.answered.toLocaleString()} répondus`} />
             <StatCard title="Durée moyenne" value={formatDuration(data.calls.avgDuration)} icon={Clock} color="#8b5cf6" subtitle="par appel répondu" />
             <StatCard title="Appels manqués" value={data.calls.missed} icon={Phone} color="#ef4444" subtitle="non répondus" />
+            <StatCard title="Renvoyés au répondeur" value={data.calls.voicemail} icon={Voicemail} color="#0ea5e9" subtitle="le téléphone n'a pas sonné" />
             <StatCard title="Durée totale" value={formatDuration(data.calls.totalDuration)} icon={Clock} color="#6366f1" subtitle="cumulée" />
             <StatCard
               title="Taux TURN"
