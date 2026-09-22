@@ -179,9 +179,14 @@ export interface CallStats {
   answered: number;
   missed: number;
   rejected: number;
-  /** Renvoyés au répondeur : le téléphone n'a jamais sonné. Quatrième seau
-   *  disjoint des trois autres, et exclu du dénominateur de `successRate`. */
+  /** Renvoyés au répondeur SANS avoir sonné — créneau de silence ou ligne
+   *  occupée. Seul seau exclu du dénominateur de `successRate` : ces appels
+   *  n'avaient aucune chance d'aboutir. */
   voicemail: number;
+  /** A sonné, puis répondeur — délai sans réponse écoulé, ou refus explicite.
+   *  Reste au dénominateur de `successRate` : l'appel était joignable et
+   *  personne ne l'a pris. */
+  voicemailAfterRing: number;
   avgDuration: number;
   totalDuration: number;
   successRate: number;

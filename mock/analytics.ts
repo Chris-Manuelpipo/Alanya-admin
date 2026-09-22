@@ -43,6 +43,7 @@ export const mockAnalytics: Analytics = {
     missed: 1450,
     rejected: 553,
     voicemail: 312,
+    voicemailAfterRing: 498,
     avgDuration: 218,
     totalDuration: 1334520,
     successRate: 75,
