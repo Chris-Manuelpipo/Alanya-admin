@@ -21,6 +21,7 @@ import {
   HeartPulse,
   ScrollText,
   Flag,
+  CreditCard,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { AdminAlerts } from "@/components/layout/AdminAlerts";
@@ -41,9 +42,10 @@ const navItemsAll = [
   { href: "/analytics", label: "Analytics", icon: BarChart3, permission: "stats.read" },
   { href: "/trips", label: "Trajets", icon: Route, permission: "trips.read" },
   { href: "/users", label: "Utilisateurs", icon: Users, permission: "users.read" },
-  // « Abonnement » (/billing) est masqué du menu jusqu'à la fusion de la branche
-  // abonnement : la page reste joignable par son adresse. La branche annule ce
-  // retrait, la fusion le rétablira d'elle-même.
+  // Lecture au niveau admin ; les réglages et les plans exigent billing.settings
+  // et billing.plans, vérifiés par la page et par le serveur.
+  { href: "/billing", label: "Abonnement", icon: CreditCard, permission: "billing.read" },
+  // Vérifications : pages conservées hors menu (comptes business plus tard).
   { href: "/groups", label: "Groupes", icon: UsersRound, permission: "groups.read" },
   { href: "/meetings", label: "Réunions", icon: Video, permission: "meetings.read" },
   { href: "/medias", label: "Médias", icon: ImageIcon, permission: "media.read" },
@@ -70,6 +72,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { can } = usePermissions();
+  // Avant tout retour anticipé : les hooks s'appellent dans le même ordre à
+  // chaque rendu.
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -131,8 +135,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <span className="relative shrink-0">
+                  <item.icon className="h-5 w-5" />
+                </span>
+                {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
               </button>
             );
           })}

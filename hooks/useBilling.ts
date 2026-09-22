@@ -5,17 +5,88 @@ import {
   deactivateBilling,
   extendBillingGrace,
   fetchBillingFeatures,
+  fetchBillingPayments,
   fetchBillingPlans,
   fetchBillingSettings,
+  fetchBillingSubscribers,
+  fetchUserBilling,
+  giftSubscription,
+  restoreBadge,
+  revokeBadge,
   updateBillingFeature,
   updateBillingPlan,
   updateBillingSettings,
 } from "@/lib/api/billing";
-import type { BillingFeaturePatch, BillingPlanPayload, BillingSettingsPatch } from "@/types";
+import type {
+  BillingFeaturePatch,
+  BillingPaymentStatus,
+  BillingPlanPayload,
+  BillingSettingsPatch,
+  BillingSubscriberFilter,
+} from "@/types";
 
 const SETTINGS = ["admin-billing-settings"];
 const PLANS = ["admin-billing-plans"];
 const FEATURES = ["admin-billing-features"];
+const PAYMENTS = ["admin-billing-payments"];
+const SUBSCRIBERS = ["admin-billing-subscribers"];
+const userBillingKey = (id: number) => ["admin-user-billing", id];
+
+export function useBillingPayments(status?: BillingPaymentStatus) {
+  return useQuery({
+    queryKey: [...PAYMENTS, status ?? "all"],
+    queryFn: () => fetchBillingPayments({ status, limit: 200 }),
+  });
+}
+
+export function useBillingSubscribers(filter: BillingSubscriberFilter) {
+  return useQuery({
+    queryKey: [...SUBSCRIBERS, filter],
+    queryFn: () => fetchBillingSubscribers(filter),
+  });
+}
+
+export function useUserBilling(userId: number, enabled = true) {
+  return useQuery({
+    queryKey: userBillingKey(userId),
+    queryFn: () => fetchUserBilling(userId),
+    enabled: enabled && Number.isInteger(userId) && userId > 0,
+  });
+}
+
+/** La réponse porte la carte à jour : posée en cache, sans relecture. */
+function useUserBillingMutation<V>(
+  fn: (v: V) => Promise<Awaited<ReturnType<typeof fetchUserBilling>>>,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (data, vars) => {
+      const userId = (vars as { userId: number }).userId;
+      qc.setQueryData(userBillingKey(userId), data);
+      qc.invalidateQueries({ queryKey: SUBSCRIBERS });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
+      qc.invalidateQueries({ queryKey: ["admin-user-detail"] });
+    },
+  });
+}
+
+export function useGiftSubscription() {
+  return useUserBillingMutation(({
+    userId, months, reason, grantsBadge,
+  }: { userId: number; months: number; reason: string; grantsBadge?: boolean }) =>
+    giftSubscription(userId, { months, reason, grantsBadge }));
+}
+
+export function useRevokeBadge() {
+  return useUserBillingMutation(({ userId, reason }: { userId: number; reason: string }) =>
+    revokeBadge(userId, reason));
+}
+
+export function useRestoreBadge() {
+  return useUserBillingMutation(({ userId, reason }: { userId: number; reason: string }) =>
+    restoreBadge(userId, reason));
+}
 
 export function useBillingSettings() {
   return useQuery({ queryKey: SETTINGS, queryFn: fetchBillingSettings });

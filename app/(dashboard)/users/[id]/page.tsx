@@ -8,6 +8,7 @@ import { useAudit } from "@/hooks/useAudit";
 import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
+import { SubscriptionCard } from "@/components/billing/SubscriptionCard";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -315,15 +316,18 @@ export default function UserDetailPage() {
                     )}
                   </div>
 
-                  {/* Le serveur refuse désormais ce champ (FIELD_IMMUTABLE) :
-                      l'état de vérification s'affiche, il ne se saisit plus. */}
+                  {/* La coche suit l'abonnement (comptes personnels) ; révocation
+                      depuis la carte Abonnement ci-contre.
+                      Elle ne se saisit pas ici, et pas seulement par choix
+                      d'interface : le serveur refuse le champ
+                      (FIELD_IMMUTABLE). */}
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-zinc-500">État de vérification</p>
+                    <p className="text-xs font-medium text-zinc-500">Coche</p>
                     <p className="text-sm">
                       {verificationLabels[user.verificationStatus ?? 0]}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Ne se modifie plus depuis cette carte.
+                      Suit l&apos;abonnement Alanya Plus. Gérer depuis la carte Abonnement.
                     </p>
                   </div>
 
@@ -351,6 +355,14 @@ export default function UserDetailPage() {
               </Card>
             );
           })()}
+
+          {can("billing.read") && (
+            <SubscriptionCard
+              userId={id}
+              userName={user.nom || user.pseudo}
+              verified={(user.verificationStatus ?? 0) === 2}
+            />
+          )}
         </div>
 
         {/* Activity + Logins */}

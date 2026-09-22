@@ -100,11 +100,12 @@ export interface CreateUserPayload {
   account_type?: number;
 }
 
-/** Socle de compte — les deux axes pilotés depuis la fiche utilisateur. */
+/**
+ * Socle de compte — le genre seul. La vérification ne se saisit plus : elle
+ * suit le dossier d'identité et l'abonnement (le serveur refuse ces champs).
+ */
 export interface SetUserSoclePayload {
   account_type?: number;
-  verification_status?: number;
-  verified_until?: string | null;
 }
 
 export interface ReservedAlanyaPhone {
@@ -948,4 +949,173 @@ export interface BillingPlanPayload {
   store_product_ios?: string | null;
   store_product_android?: string | null;
   features?: string[];
+}
+
+export type BillingPaymentStatus = 'created' | 'pending' | 'succeeded' | 'failed' | 'expired' | 'refunded';
+
+/** Ligne de GET /admin/billing/payments. Le numéro arrive déjà masqué. */
+export interface BillingPaymentRow {
+  id: number;
+  alanyaId: number;
+  userName: string | null;
+  plan: string;
+  provider: string;
+  channel: string | null;
+  msisdn: string | null;
+  amount: number;
+  currency: string;
+  status: BillingPaymentStatus;
+  providerRef: string | null;
+  /** INSUFFICIENT_FUNDS, USER_DECLINED, TIMEOUT… */
+  failureCode: string | null;
+  createdAt: string;
+  confirmedAt: string | null;
+}
+
+export type BillingSubscriberFilter = 'active' | 'expiring' | 'expired' | 'all';
+
+export interface BillingSubscriberRow {
+  alanyaId: number;
+  userName: string | null;
+  alanyaPhone: string | null;
+  plan: string | null;
+  currentEnd: string;
+  autoRenew: boolean;
+  renewChannel: string | null;
+  purgeAfter: string | null;
+}
+
+/** 0 paiement, 1 essai, 2 offert, 3 compensation. */
+export type BillingPeriodSource = 0 | 1 | 2 | 3;
+
+export interface BillingPeriodRow {
+  id: number;
+  plan: string;
+  startsAt: string;
+  endsAt: string;
+  source: BillingPeriodSource;
+  /** false = période offerte sans la coche. */
+  grantsBadge?: boolean;
+  paymentId: number | null;
+  reason: string | null;
+  grantedByName: string | null;
+}
+
+export interface BillingEntitlementPeriod {
+  plan: string | null;
+  startsAt: string;
+  endsAt: string;
+  source: number;
+  autoRenew: boolean;
+}
+
+/**
+ * Droits d'un compte, tels que l'application les reçoit — mais convertis en
+ * camelCase, clés de `features` comprises (`verified_badge` → `verifiedBadge`).
+ */
+export interface BillingEntitlements {
+  phase: BillingPhase;
+  graceUntil: string | null;
+  period: BillingEntitlementPeriod | null;
+  upcoming: BillingEntitlementPeriod | null;
+  exempt: boolean;
+  features: Record<string, boolean>;
+  validUntil: string | null;
+  lapsedAt?: string | null;
+  /** Compte de BILLING_TEST_USERS : voit la phase payante interrupteur éteint. */
+  tester?: boolean;
+}
+
+// ── Vérification d'identité ──
+
+export type VerificationQueue = 'pending' | 'documents' | 'renamed' | 'decided' | 'all';
+
+export type VerificationRequestStatus =
+  | 'pending' | 'document_requested' | 'approved' | 'refused' | 'cancelled' | 'revoked';
+
+/** Ligne de GET /admin/verifications et de l'historique d'un compte. */
+export interface VerificationRow {
+  id: number;
+  alanyaId: number;
+  userName: string | null;
+  pseudo: string | null;
+  avatarUrl: string | null;
+  accountType: number;
+  targetType: number;
+  claimedName: string;
+  nameAtApproval: string | null;
+  /** Approuvé, mais le nom affiché a changé depuis : à réexaminer. */
+  nameChanged: boolean;
+  status: VerificationRequestStatus;
+  reason: string | null;
+  revokeReason: string | null;
+  reviewerName: string | null;
+  documents: number;
+  createdAt: string;
+  decidedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface VerificationDocument {
+  id: number;
+  /** 1 pièce d'identité, 4 selfie avec la pièce. */
+  docType: number;
+  mime: string;
+  size: number;
+  uploadedAt: string;
+  purgeAfter: string | null;
+  purged: boolean;
+  /** Nombre d'ouvertures déjà journalisées. */
+  views: number;
+}
+
+export interface VerificationDetail {
+  request: VerificationRow;
+  user: {
+    alanyaId: number;
+    nom: string;
+    pseudo: string;
+    avatarUrl: string | null;
+    alanyaPhone: string | null;
+    accountType: number;
+    verificationStatus: number;
+    verifiedUntil: string | null;
+    createdAt: string | null;
+  } | null;
+  documents: VerificationDocument[];
+  history: VerificationRow[];
+}
+
+export interface VerificationCount {
+  pending: number;
+  documents: number;
+  renamed: number;
+}
+
+// ── Sécurité ──
+//
+// GET / PUT /admin/security-settings. Une seule bascule pour l'instant : la
+// connexion par mot de passe réservée aux téléphones déjà enrôlés.
+
+export interface SecuritySettings {
+  deviceBindingEnabled: boolean;
+  updatedAt: string;
+}
+
+/** GET /admin/users/:id/billing — la carte « Abonnement et coche ». */
+export interface UserBillingResponse {
+  entitlements: BillingEntitlements;
+  subscriber: {
+    currentEnd: string | null;
+    autoRenew: boolean;
+    renewChannel: string | null;
+    purgeAfter: string | null;
+  } | null;
+  badgeRevocation: {
+    revokedAt: string;
+    reason: string;
+    revokedByName: string | null;
+  } | null;
+  periods: BillingPeriodRow[];
+  payments: BillingPaymentRow[];
 }
