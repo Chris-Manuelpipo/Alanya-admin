@@ -245,6 +245,7 @@ export function SubscriptionCard({
                     <li key={p.id} className="flex items-center justify-between gap-2 py-1.5">
                       <span className="text-xs tabular-nums">
                         {shortDay(p.createdAt)} · <span className="font-medium">{formatFcfa(p.amount)}</span>
+                        {p.product === "phone" && <span className="text-zinc-500"> · Numéro Alanya</span>}
                       </span>
                       <Badge className={cn("border-0 px-1.5 py-0 text-[10px]", PAYMENT_STATUS_CLASS[p.status])}>
                         {PAYMENT_STATUS_LABEL[p.status] ?? p.status}

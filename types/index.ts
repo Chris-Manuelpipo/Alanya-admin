@@ -953,12 +953,18 @@ export interface BillingPlanPayload {
 
 export type BillingPaymentStatus = 'created' | 'pending' | 'succeeded' | 'failed' | 'expired' | 'refunded';
 
+/** Ce qu'un paiement achète : un abonnement, ou un numéro Alanya choisi (sans plan). */
+export type BillingPaymentProduct = 'plus' | 'phone';
+
 /** Ligne de GET /admin/billing/payments. Le numéro arrive déjà masqué. */
 export interface BillingPaymentRow {
   id: number;
   alanyaId: number;
   userName: string | null;
-  plan: string;
+  /** Absent d'un serveur antérieur au numéro choisi : c'était alors toujours un abonnement. */
+  product?: BillingPaymentProduct;
+  /** Null pour un achat de numéro. */
+  plan: string | null;
   provider: string;
   channel: string | null;
   msisdn: string | null;

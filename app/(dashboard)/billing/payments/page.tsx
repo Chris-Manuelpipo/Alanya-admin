@@ -20,7 +20,7 @@ import { BillingPageHeader, FilterChips } from "@/components/billing/BillingPage
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBillingPayments, useBillingPlans } from "@/hooks/useBilling";
 import {
-  FAILURE_LABEL, PAYMENT_STATUS_CLASS, PAYMENT_STATUS_LABEL, channelLabel, fmtDateTime, planLabel,
+  FAILURE_LABEL, PAYMENT_STATUS_CLASS, PAYMENT_STATUS_LABEL, channelLabel, fmtDateTime, paymentItemLabel,
 } from "@/lib/billing-labels";
 import { formatFcfa } from "@/lib/plan-pricing";
 import { cn } from "@/lib/utils";
@@ -99,7 +99,7 @@ export default function BillingPaymentsPage() {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Compte</TableHead>
-                  <TableHead>Plan</TableHead>
+                  <TableHead>Achat</TableHead>
                   <TableHead>Moyen</TableHead>
                   <TableHead className="text-right">Montant</TableHead>
                   <TableHead>Statut</TableHead>
@@ -121,7 +121,7 @@ export default function BillingPaymentsPage() {
                       </Link>
                       <span className="block text-xs text-zinc-400 tabular-nums">#{r.alanyaId}</span>
                     </TableCell>
-                    <TableCell className="text-sm">{planLabel(r.plan, plans)}</TableCell>
+                    <TableCell className="text-sm">{paymentItemLabel(r, plans)}</TableCell>
                     <TableCell className="text-sm">
                       {channelLabel(r.channel)}
                       {r.msisdn && <span className="block font-mono text-xs text-zinc-400">{r.msisdn}</span>}

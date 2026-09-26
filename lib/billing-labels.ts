@@ -3,7 +3,7 @@
  * Abonnés et la carte « Abonnement et coche ». Purs : testés sans navigateur.
  */
 
-import type { BillingPaymentStatus, BillingPlan } from "@/types";
+import type { BillingPaymentProduct, BillingPaymentStatus, BillingPlan } from "@/types";
 
 export const PAYMENT_STATUS_LABEL: Record<BillingPaymentStatus, string> = {
   created: "Créé",
@@ -43,6 +43,15 @@ export function channelLabel(channel: string | null | undefined): string {
 export function planLabel(code: string | null | undefined, plans?: BillingPlan[]): string {
   if (!code) return "—";
   return plans?.find((p) => p.code === code)?.nameI18n?.fr || code;
+}
+
+/** Ce qu'a acheté un paiement : le plan, ou le numéro choisi, qui n'en a pas. */
+export function paymentItemLabel(
+  row: { product?: BillingPaymentProduct; plan: string | null },
+  plans?: BillingPlan[],
+): string {
+  if (row.product === "phone") return "Numéro Alanya";
+  return planLabel(row.plan, plans);
 }
 
 export const fmtDay = (d: Date | string | null | undefined) =>

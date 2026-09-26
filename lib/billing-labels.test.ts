@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, channelLabel, nextPeriodStart, planLabel } from "./billing-labels";
+import { addMonths, channelLabel, nextPeriodStart, paymentItemLabel, planLabel } from "./billing-labels";
 import type { BillingPlan } from "@/types";
 
 describe("addMonths", () => {
@@ -42,5 +42,19 @@ describe("libellés", () => {
     expect(planLabel("plus_annuel", plans)).toBe("Annuel");
     expect(planLabel("plus_mensuel", plans)).toBe("plus_mensuel");
     expect(planLabel(null, plans)).toBe("—");
+  });
+});
+
+describe("paymentItemLabel", () => {
+  it("un achat de numéro n'a pas de plan", () => {
+    expect(paymentItemLabel({ product: "phone", plan: null })).toBe("Numéro Alanya");
+  });
+
+  it("un abonnement garde le nom de son plan", () => {
+    expect(paymentItemLabel({ product: "plus", plan: "plus_annuel" })).toBe("plus_annuel");
+  });
+
+  it("un serveur plus ancien n'envoie pas product : abonnement", () => {
+    expect(paymentItemLabel({ plan: "plus_annuel" })).toBe("plus_annuel");
   });
 });
