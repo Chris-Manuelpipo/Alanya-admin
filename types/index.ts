@@ -143,6 +143,10 @@ export interface AssignablePhoneCheck {
   isPatternReserved: boolean;
   inReservedTable: boolean;
   isTaken: boolean;
+  /** Un utilisateur est en train d'acheter ce numéro : l'attribution est refusée. */
+  isHeld?: boolean;
+  /** Numéro quitté récemment : l'attribution reste possible, l'écran avertit. */
+  quarantineUntil?: string | null;
   assignable: boolean;
   reason: string | null;
   source: 'pattern' | 'table' | 'standard';

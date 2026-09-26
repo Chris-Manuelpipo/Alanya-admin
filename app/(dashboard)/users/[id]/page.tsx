@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserDetail, useUserActivity, useUserLogins } from "@/hooks/useUserDetail";
 import { useAudit } from "@/hooks/useAudit";
-import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone } from "@/hooks/useUsers";
-import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
+import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUser, useUpdateUserPhone, useCheckAssignablePhone } from "@/hooks/useUsers";
+import { formatDisplay, formatLiveInput, isCompletePhone, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
 import { SubscriptionCard } from "@/components/billing/SubscriptionCard";
 import { PhoneHistoryCard } from "@/components/users/PhoneHistoryCard";
@@ -52,6 +52,14 @@ export default function UserDetailPage() {
   const deleteMutation = useDeleteUser();
   const phoneMutation = useUpdateUserPhone();
   const socleMutation = useSetUserSocle();
+
+  // Vérifié pendant la saisie : un numéro qu'un utilisateur est en train
+  // d'acheter est refusé, un numéro en quarantaine passe avec un avertissement.
+  const newPhoneCanonical = normalize(newPhone);
+  const { data: newPhoneCheck, isFetching: newPhoneChecking } = useCheckAssignablePhone(
+    newPhoneCanonical,
+    showPhoneChange && can("phones.read") && isCompletePhone(newPhoneCanonical),
+  );
 
   // `null` = « non touché » : la valeur affichée reste celle du serveur tant que
   // l'administrateur n'a rien changé, sans effet de bord de synchronisation.
@@ -552,6 +560,22 @@ export default function UserDetailPage() {
             onChange={(e) => setNewPhone(formatLiveInput(e.target.value))}
             placeholder="00 00 00 00"
           />
+          {newPhoneCheck && !newPhoneChecking && newPhoneCheck.phoneCanonical === newPhoneCanonical && (
+            <p
+              className={cn(
+                "text-xs",
+                !newPhoneCheck.assignable
+                  ? "text-red-500"
+                  : newPhoneCheck.quarantineUntil
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-indigo-600 dark:text-indigo-400",
+              )}
+            >
+              {newPhoneCheck.assignable
+                ? newPhoneCheck.hint || "Numéro disponible"
+                : newPhoneCheck.reason || "Numéro indisponible"}
+            </p>
+          )}
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Annuler</Button></DialogClose>
             <Button
