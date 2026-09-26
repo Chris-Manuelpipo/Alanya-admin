@@ -1109,6 +1109,27 @@ export interface SecuritySettings {
 }
 
 /** GET /admin/users/:id/billing — la carte « Abonnement et coche ». */
+/** Un changement de numéro Alanya, acheté ou fait par l'administration. */
+export interface PhoneHistoryEntry {
+  id: number;
+  oldPhone: string;
+  newPhone: string;
+  source: 'purchase' | 'admin';
+  changedAt: string;
+  changedByName: string | null;
+  /** Montant payé, pour un achat. */
+  amount: number | null;
+  currency: string | null;
+}
+
+/** GET /admin/users/:id/phone-history */
+export interface UserPhoneHistoryResponse {
+  quarantineDays: number;
+  /** Changement payé dont le numéro a été pris entre-temps : l'utilisateur doit en choisir un autre. */
+  pendingCredit: { orderId: number; createdAt: string } | null;
+  history: PhoneHistoryEntry[];
+}
+
 export interface UserBillingResponse {
   entitlements: BillingEntitlements;
   subscriber: {

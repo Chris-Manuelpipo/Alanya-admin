@@ -9,6 +9,7 @@ import { useBanUser, useUnbanUser, useSetUserRole, useSetUserSocle, useDeleteUse
 import { formatDisplay, formatLiveInput, normalize, validate } from "@/lib/alanya-phone";
 import { AccountBadgeLabel, isOfficialAlanyaAccount } from "@/components/account-badge";
 import { SubscriptionCard } from "@/components/billing/SubscriptionCard";
+import { PhoneHistoryCard } from "@/components/users/PhoneHistoryCard";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -363,6 +364,8 @@ export default function UserDetailPage() {
               verified={(user.verificationStatus ?? 0) === 2}
             />
           )}
+
+          <PhoneHistoryCard userId={id} />
         </div>
 
         {/* Activity + Logins */}

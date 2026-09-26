@@ -8,6 +8,7 @@ import {
   deleteUser,
   createUser,
   updateUserPhone,
+  fetchUserPhoneHistory,
   fetchReservedAlanyaPhones,
   addReservedAlanyaPhone,
   removeReservedAlanyaPhone,
@@ -103,7 +104,16 @@ export function useUpdateUserPhone() {
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       qc.invalidateQueries({ queryKey: ['admin-user-detail', id] });
+      qc.invalidateQueries({ queryKey: ['admin-user-phone-history', id] });
     },
+  });
+}
+
+export function useUserPhoneHistory(userId: number) {
+  return useQuery({
+    queryKey: ['admin-user-phone-history', userId],
+    queryFn: () => fetchUserPhoneHistory(userId),
+    enabled: Number.isInteger(userId) && userId > 0,
   });
 }
 

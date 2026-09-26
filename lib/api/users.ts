@@ -103,6 +103,12 @@ export async function updateUserPhone(id: number, alanyaPhone: string): Promise<
   await api.put(`/admin/users/${id}/phone`, { alanyaPhone });
 }
 
+export async function fetchUserPhoneHistory(id: number): Promise<import('@/types').UserPhoneHistoryResponse> {
+  if (USE_MOCK) return { quarantineDays: 90, pendingCredit: null, history: [] };
+  const res = await api.get(`/admin/users/${id}/phone-history`);
+  return res.data;
+}
+
 export async function fetchReservedAlanyaPhones(
   params: import('@/types').ReservedAlanyaPhonesParams = {},
 ): Promise<import('@/types').PaginatedReservedAlanyaPhones> {
